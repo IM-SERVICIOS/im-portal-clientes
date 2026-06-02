@@ -1,1 +1,64 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
 
+body{
+    background:#f5f7fb;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.login-container{
+    width:400px;
+    background:white;
+    padding:40px;
+    border-radius:12px;
+    box-shadow:0 5px 20px rgba(0,0,0,.1);
+    text-align:center;
+}
+
+.logo{
+    width:120px;
+    margin-bottom:20px;
+}
+
+h1{
+    margin-bottom:10px;
+}
+
+p{
+    color:#777;
+    margin-bottom:25px;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    margin-bottom:15px;
+    border:1px solid #ddd;
+    border-radius:8px;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    background:#1e4db7;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+#mensaje{
+    margin-top:15px;
+    color:red;
+}

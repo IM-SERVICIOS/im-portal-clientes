@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
 
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Portal Clientes | IM Servicios Contables</title>
+
+<link rel="stylesheet" href="css/styles.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</head>
+
+<body>
+
+<div class="login-container">
+
+    <img src="assets/logo.png" class="logo">
+
+    <h1>Portal de Clientes</h1>
+
+    <p>IM Servicios Contables</p>
+
+    <form id="loginForm">
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Correo electrónico"
+            required
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Contraseña"
+            required
+        >
+
+        <button type="submit">
+            Iniciar Sesión
+        </button>
+
+    </form>
+
+    <div id="mensaje"></div>
+
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+
+</body>
+</html>

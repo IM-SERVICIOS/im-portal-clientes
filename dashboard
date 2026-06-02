@@ -1,25 +1,18 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
+async function cargarUsuario() {
 
-<meta charset="UTF-8">
+    const {
+        data: { user }
+    } = await supabase.auth.getUser();
 
-<title>Dashboard</title>
+    if (!user) {
 
-<link rel="stylesheet" href="css/styles.css">
+        window.location.href = "index.html";
+        return;
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    document.getElementById("usuario").innerHTML = `
+        <p>${user.email}</p>
+    `;
+}
 
-</head>
-
-<body>
-
-<h1>Dashboard IM Servicios Contables</h1>
-
-<div id="usuario"></div>
-
-<script src="js/supabase.js"></script>
-<script src="js/dashboard.js"></script>
-
-</body>
-</html>
+cargarUsuario();

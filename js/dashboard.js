@@ -1,12 +1,8 @@
 async function cargarUsuario() {
 
     const {
-        data: { user },
-        error
+        data: { user }
     } = await supabaseClient.auth.getUser();
-
-    console.log("USER:", user);
-    console.log("ERROR:", error);
 
     if (!user) {
         window.location.href = "index.html";
@@ -14,9 +10,15 @@ async function cargarUsuario() {
     }
 
     document.getElementById("usuario").innerHTML = `
-        <h2>Bienvenido</h2>
-        <p>${user.email}</p>
+        <h2>${user.email}</h2>
     `;
+
+    const { data, error } = await supabaseClient
+        .from("usuarios")
+        .select("*");
+
+    console.log("USUARIOS:", data);
+    console.log("ERROR:", error);
 }
 
 cargarUsuario();

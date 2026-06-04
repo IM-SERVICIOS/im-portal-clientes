@@ -1,18 +1,23 @@
-async function cargarUsuario() {
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | IM Servicios Contables</title>
 
-    const {
-        data: { user }
-    } = await supabase.auth.getUser();
+    <link rel="stylesheet" href="css/styles.css">
 
-    if (!user) {
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
 
-        window.location.href = "index.html";
-        return;
-    }
+<body>
 
-    document.getElementById("usuario").innerHTML = `
-        <p>${user.email}</p>
-    `;
-}
+    <h1>Dashboard</h1>
 
-cargarUsuario();
+    <div id="usuario"></div>
+
+    <script src="js/supabase.js"></script>
+    <script src="js/dashboard.js"></script>
+
+</body>
+</html>

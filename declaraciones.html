@@ -1,1 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Declaraciones | Portal de Clientes - IM Servicios Contables</title>
+
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/declaraciones.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</head>
+
+<body class="dashboard-body">
+
+<div class="dashboard-shell">
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+            <img src="assets/logo.png" alt="IM Servicios Contables">
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">Mis Clientes</a>
+            <a href="declaraciones.html" class="nav-item active">Declaraciones</a>
+            <a href="honorarios.html" class="nav-item">Honorarios</a>
+            <a href="documentos.html" class="nav-item">Documentos</a>
+        </nav>
+
+        <button id="btnCerrarSesion" class="sidebar-logout">Cerrar Sesión</button>
+
+    </aside>
+
+    <main class="dashboard-main">
+
+        <a href="dashboard.html" class="volver-link">&larr; Volver a Mis Clientes</a>
+
+        <header class="dashboard-header">
+            <div>
+                <h1 id="nombreCliente">Cargando...</h1>
+                <p class="subtitle" id="rfcCliente"></p>
+            </div>
+            <div id="badgeCumplimiento" class="badge-cumplimiento" style="display:none;"></div>
+        </header>
+
+        <section id="estadoCarga" class="estado-carga">Cargando historial de declaraciones...</section>
+
+        <section id="heatmapCard" class="heatmap-card" style="display:none;">
+            <h2 class="heatmap-titulo">Estatus Histórico de Cumplimiento</h2>
+            <div id="heatmapGrid" class="heatmap-grid"></div>
+            <div class="heatmap-leyenda">
+                <span class="leyenda-item"><span class="leyenda-color verde"></span> Presentadas completas</span>
+                <span class="leyenda-item"><span class="leyenda-color amarillo"></span> Presentación parcial</span>
+                <span class="leyenda-item"><span class="leyenda-color gris"></span> Pendiente / sin registro</span>
+            </div>
+        </section>
+
+        <section id="tablaCard" class="tabla-card" style="display:none;">
+            <h2 class="heatmap-titulo">Detalle de declaraciones</h2>
+            <table class="tabla-declaraciones">
+                <thead>
+                    <tr>
+                        <th>Periodo</th>
+                        <th>Tipo</th>
+                        <th>ISR</th>
+                        <th>IVA</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaDeclaracionesBody"></tbody>
+            </table>
+        </section>
+
+    </main>
+
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/declaraciones.js"></script>
+
+</body>
+</html>
 

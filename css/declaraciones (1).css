@@ -1,0 +1,235 @@
+/* =====================================================
+   Declaraciones - Heatmap de cumplimiento
+   ===================================================== */
+
+:root {
+  --verde: #1aab6b;
+  --verde-claro: #5fd39a;
+  --amarillo: #f0b429;
+  --gris-celda: #e2e8f0;
+}
+
+.volver-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--texto-secundario);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.volver-link:hover {
+  color: var(--azul-marca);
+}
+
+.badge-cumplimiento {
+  background: var(--verde);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge-cumplimiento.amarillo {
+  background: var(--amarillo);
+}
+
+.badge-cumplimiento.gris {
+  background: #94a3b8;
+}
+
+/* Filtros (modo general) */
+
+.filtros-card {
+  background: var(--tarjeta, #fff);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.filtro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.filtro-campo select {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--texto-principal);
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: #fff;
+  min-width: 180px;
+}
+
+.tabla-declaraciones .estado-vacio {
+  text-align: center;
+  color: var(--texto-secundario);
+  padding: 24px;
+}
+
+/* Tarjetas contenedoras */
+
+.heatmap-card,
+.tabla-card {
+  background: var(--tarjeta, #fff);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+}
+
+.heatmap-titulo {
+  margin: 0 0 18px;
+  font-size: 16px;
+  color: var(--texto-principal);
+}
+
+/* Grid del heatmap */
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(12, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.heatmap-mes-header {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+.heatmap-anio-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--texto-principal);
+}
+
+.heatmap-celda {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--gris-celda);
+  transition: transform 0.1s ease;
+}
+
+.heatmap-celda:hover {
+  transform: scale(1.08);
+}
+
+.heatmap-celda.verde {
+  background: var(--verde);
+}
+
+.heatmap-celda.amarillo {
+  background: var(--amarillo);
+}
+
+.heatmap-celda.gris {
+  background: var(--gris-celda);
+}
+
+/* Leyenda */
+
+.heatmap-leyenda {
+  display: flex;
+  gap: 24px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--texto-secundario);
+  flex-wrap: wrap;
+}
+
+.leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leyenda-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.leyenda-color.verde { background: var(--verde); }
+.leyenda-color.amarillo { background: var(--amarillo); }
+.leyenda-color.gris { background: var(--gris-celda); }
+
+/* Tabla de declaraciones */
+
+.tabla-declaraciones {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla-declaraciones th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla-declaraciones td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla-declaraciones tbody tr:hover {
+  background: var(--fondo);
+}
+
+.estatus-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estatus-pill.verde {
+  background: rgba(26, 171, 107, 0.12);
+  color: var(--verde);
+}
+
+.estatus-pill.gris {
+  background: rgba(148, 163, 184, 0.18);
+  color: #64748b;
+}
+
+/* Responsive */
+
+@media (max-width: 720px) {
+  .heatmap-grid {
+    grid-template-columns: 40px repeat(12, minmax(20px, 1fr));
+    gap: 4px;
+  }
+
+  .heatmap-mes-header {
+    font-size: 9px;
+  }
+
+  .tabla-declaraciones {
+    font-size: 12px;
+  }
+}

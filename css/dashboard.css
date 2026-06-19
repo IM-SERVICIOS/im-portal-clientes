@@ -3,13 +3,36 @@
    ===================================================== */
 
 :root {
+  /* Marca */
   --azul-marca: #2c4a7c;
   --azul-marca-oscuro: #1f3759;
-  --fondo: #f5f7fa;
+  --teal-marca: #0d6e6b;
+  --teal-marca-oscuro: #0a5654;
+  --dorado-acento: #c89b3c;
+
+  /* Superficie */
+  --fondo: #f3f6f8;
+  --tarjeta: #ffffff;
+  --borde: #e2e8f0;
+
+  /* Texto */
   --texto-principal: #1f2937;
   --texto-secundario: #6b7280;
-  --borde: #e2e8f0;
+  --texto-tenue: #9aa5b1;
+
+  /* Estado */
   --error: #c0392b;
+  --exito: #1d8a5e;
+
+  /* KPI icon backgrounds (variaciones de marca, no genéricos) */
+  --kpi-1: #0d6e6b;
+  --kpi-2: #2c4a7c;
+  --kpi-3: #5b3fa0;
+  --kpi-4: #c97f1f;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 .dashboard-body {
@@ -24,10 +47,10 @@
   min-height: 100vh;
 }
 
-/* Sidebar */
+/* ============ Sidebar ============ */
 
 .sidebar {
-  width: 220px;
+  width: 224px;
   flex-shrink: 0;
   background: var(--azul-marca-oscuro);
   color: #fff;
@@ -39,7 +62,7 @@
 .sidebar-logo {
   display: flex;
   justify-content: center;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .sidebar-logo img {
@@ -55,12 +78,15 @@
 }
 
 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 10px 14px;
   border-radius: 8px;
-  color: #cbd5e1;
+  color: #b9c4d4;
   text-decoration: none;
   font-size: 14px;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .nav-item:hover {
@@ -69,7 +95,7 @@
 }
 
 .nav-item.active {
-  background: var(--azul-marca);
+  background: var(--teal-marca);
   color: #fff;
   font-weight: 600;
 }
@@ -89,18 +115,19 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Main content */
+/* ============ Main content ============ */
 
 .dashboard-main {
   flex-grow: 1;
-  padding: 32px 40px;
+  padding: 32px 40px 48px;
+  max-width: 1280px;
 }
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .dashboard-header h1 {
@@ -133,6 +160,154 @@
   text-transform: capitalize;
 }
 
+/* ============ Resumen de operación ============ */
+
+.resumen-panel {
+  background: var(--tarjeta);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  margin-bottom: 32px;
+}
+
+.resumen-encabezado {
+  background: linear-gradient(120deg, var(--teal-marca), var(--teal-marca-oscuro));
+  color: #fff;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.resumen-encabezado .icono {
+  font-size: 18px;
+}
+
+.resumen-cuerpo {
+  padding: 22px 24px 26px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.kpi-icono {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.kpi-icono.kpi-1 { background: var(--kpi-1); }
+.kpi-icono.kpi-2 { background: var(--kpi-2); }
+.kpi-icono.kpi-3 { background: var(--kpi-3); }
+.kpi-icono.kpi-4 { background: var(--kpi-4); }
+
+.kpi-texto .kpi-label {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--texto-secundario);
+}
+
+.kpi-texto .kpi-valor {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--texto-principal);
+}
+
+.pendientes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.pendiente-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.pendiente-card .pendiente-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pendiente-icono {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #fff;
+  flex-shrink: 0;
+  background: var(--azul-marca);
+}
+
+.pendiente-card h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.pendiente-card p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--texto-secundario);
+}
+
+.pendiente-valor {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--texto-principal);
+}
+
+/* ============ Sección Mis Clientes ============ */
+
+.seccion-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.seccion-subtitulo {
+  margin: 0 0 16px;
+  color: var(--texto-secundario);
+  font-size: 13px;
+}
+
 /* Estados */
 
 .estado-carga {
@@ -147,6 +322,10 @@
 .estado-vacio {
   color: var(--texto-secundario);
   font-size: 14px;
+  border: 1px dashed var(--borde);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
 }
 
 /* Tarjetas de clientes */
@@ -158,7 +337,7 @@
 }
 
 .cliente-card {
-  background: #fff;
+  background: var(--tarjeta);
   border: 1px solid var(--borde);
   border-radius: 12px;
   padding: 20px;
@@ -194,7 +373,7 @@
   background: var(--azul-marca-oscuro);
 }
 
-/* Responsive */
+/* ============ Responsive ============ */
 
 @media (max-width: 720px) {
   .dashboard-shell {
@@ -234,5 +413,10 @@
 
   .usuario-info {
     align-items: flex-start;
+  }
+
+  .kpi-grid,
+  .pendientes-grid {
+    grid-template-columns: 1fr;
   }
 }

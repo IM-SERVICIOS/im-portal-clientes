@@ -10,14 +10,50 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
-<body>
+<body class="dashboard-body">
 
-    <h1>Dashboard</h1>
+<div class="dashboard-shell">
 
-    <div id="usuario"></div>
+    <aside class="sidebar">
 
-    <script src="js/supabase.js"></script>
-    <script src="js/dashboard.js"></script>
+        <div class="sidebar-logo">
+            <img src="assets/logo.png" alt="IM Servicios Contables">
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item active">Mis Clientes</a>
+            <a href="declaraciones.html" class="nav-item">Declaraciones</a>
+            <a href="honorarios.html" class="nav-item">Honorarios</a>
+            <a href="documentos.html" class="nav-item">Documentos</a>
+        </nav>
+
+        <button id="btnCerrarSesion" class="sidebar-logout">Cerrar Sesión</button>
+
+    </aside>
+
+    <main class="dashboard-main">
+
+        <header class="dashboard-header">
+            <div>
+                <h1>Mis Clientes</h1>
+                <p class="subtitle">Clientes asignados a tu cuenta</p>
+            </div>
+            <div class="usuario-info">
+                <span id="nombreUsuario">Cargando...</span>
+                <span id="rolUsuario" class="badge-rol"></span>
+            </div>
+        </header>
+
+        <section id="estadoCarga" class="estado-carga">Cargando tus clientes...</section>
+
+        <section id="clientesGrid" class="clientes-grid"></section>
+
+    </main>
+
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/dashboard.js"></script>
 
 </body>
 </html>

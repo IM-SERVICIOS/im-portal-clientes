@@ -1,1 +1,222 @@
+// =====================================================
+// Declaraciones - Heatmap de cumplimiento por cliente
+// =====================================================
+
+const nombreClienteEl = document.getElementById('nombreCliente');
+const rfcClienteEl = document.getElementById('rfcCliente');
+const badgeCumplimientoEl = document.getElementById('badgeCumplimiento');
+const estadoCargaEl = document.getElementById('estadoCarga');
+const heatmapCardEl = document.getElementById('heatmapCard');
+const heatmapGridEl = document.getElementById('heatmapGrid');
+const tablaCardEl = document.getElementById('tablaCard');
+const tablaBodyEl = document.getElementById('tablaDeclaracionesBody');
+
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+function formatearMoneda(numero) {
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numero || 0);
+}
+
+// Coincidencia robusta de "presentada": ignora mayúsculas y no exige
+// el texto exacto, igual que con el campo "rol" en dashboard.js.
+function esPresentada(estatus) {
+  return typeof estatus === 'string' && estatus.trim().toLowerCase().includes('presentad');
+}
+
+function mostrarError(texto) {
+  estadoCargaEl.textContent = texto;
+  estadoCargaEl.classList.add('estado-error');
+}
+
+function crearCelda(year, mesIndex, entradas) {
+  const celda = document.createElement('div');
+  celda.className = 'heatmap-celda';
+
+  const total = entradas.length;
+  const presentadas = entradas.filter(d => esPresentada(d.estatus_sat)).length;
+
+  let estado = 'gris';
+  if (total > 0 && presentadas === total) {
+    estado = 'verde';
+  } else if (presentadas > 0 && presentadas < total) {
+    estado = 'amarillo';
+  }
+  celda.classList.add(estado);
+
+  const nombreMes = MESES_LARGO[mesIndex];
+  celda.title = total === 0
+    ? `${nombreMes} ${year}: sin declaración registrada`
+    : `${nombreMes} ${year}: ${presentadas}/${total} presentadas`;
+
+  return celda;
+}
+
+function renderHeatmap(declaraciones) {
+  // Agrupar por "ejercicio-mes"
+  const mapa = {};
+  declaraciones.forEach(d => {
+    const clave = `${d.ejercicio}-${d.mes}`;
+    if (!mapa[clave]) mapa[clave] = [];
+    mapa[clave].push(d);
+  });
+
+  const anioActual = new Date().getFullYear();
+  const aniosConDatos = declaraciones.map(d => Number(d.ejercicio)).filter(n => !Number.isNaN(n));
+
+  const anioMin = aniosConDatos.length ? Math.min(...aniosConDatos, anioActual) : anioActual;
+  const anioMax = aniosConDatos.length ? Math.max(...aniosConDatos, anioActual) : anioActual;
+
+  heatmapGridEl.innerHTML = '';
+
+  // Fila de encabezado (vacío + 12 meses)
+  heatmapGridEl.appendChild(document.createElement('div'));
+  MESES.forEach(mes => {
+    const header = document.createElement('div');
+    header.className = 'heatmap-mes-header';
+    header.textContent = mes;
+    heatmapGridEl.appendChild(header);
+  });
+
+  let totalGlobal = 0;
+  let presentadasGlobal = 0;
+
+  for (let year = anioMin; year <= anioMax; year++) {
+    const labelAnio = document.createElement('div');
+    labelAnio.className = 'heatmap-anio-label';
+    labelAnio.textContent = year;
+    heatmapGridEl.appendChild(labelAnio);
+
+    for (let mes = 1; mes <= 12; mes++) {
+      const entradas = mapa[`${year}-${mes}`] || [];
+      totalGlobal += entradas.length;
+      presentadasGlobal += entradas.filter(d => esPresentada(d.estatus_sat)).length;
+      heatmapGridEl.appendChild(crearCelda(year, mes - 1, entradas));
+    }
+  }
+
+  // Badge de cumplimiento general
+  badgeCumplimientoEl.style.display = 'inline-block';
+  badgeCumplimientoEl.classList.remove('amarillo', 'gris');
+
+  if (totalGlobal === 0) {
+    badgeCumplimientoEl.textContent = 'Sin declaraciones registradas';
+    badgeCumplimientoEl.classList.add('gris');
+  } else {
+    const porcentaje = Math.round((presentadasGlobal / totalGlobal) * 100);
+    badgeCumplimientoEl.textContent = `${porcentaje}% al corriente`;
+    if (porcentaje === 100) {
+      // usa el verde por defecto del badge
+    } else if (porcentaje > 0) {
+      badgeCumplimientoEl.classList.add('amarillo');
+    } else {
+      badgeCumplimientoEl.classList.add('gris');
+    }
+  }
+}
+
+function renderTabla(declaraciones) {
+  tablaBodyEl.innerHTML = '';
+
+  if (declaraciones.length === 0) {
+    const fila = document.createElement('tr');
+    const celda = document.createElement('td');
+    celda.colSpan = 5;
+    celda.className = 'estado-vacio';
+    celda.textContent = 'No hay declaraciones registradas para este cliente.';
+    fila.appendChild(celda);
+    tablaBodyEl.appendChild(fila);
+    return;
+  }
+
+  const ordenadas = [...declaraciones].sort((a, b) => {
+    if (a.ejercicio !== b.ejercicio) return b.ejercicio - a.ejercicio;
+    return b.mes - a.mes;
+  });
+
+  ordenadas.forEach(d => {
+    const fila = document.createElement('tr');
+
+    const tdPeriodo = document.createElement('td');
+    tdPeriodo.textContent = `${MESES_LARGO[d.mes - 1] || d.mes} ${d.ejercicio}`;
+
+    const tdTipo = document.createElement('td');
+    tdTipo.textContent = d.tipo_declaracion || '—';
+
+    const tdIsr = document.createElement('td');
+    tdIsr.textContent = formatearMoneda(d.isr);
+
+    const tdIva = document.createElement('td');
+    tdIva.textContent = formatearMoneda(d.iva);
+
+    const tdEstatus = document.createElement('td');
+    const pill = document.createElement('span');
+    pill.className = `estatus-pill ${esPresentada(d.estatus_sat) ? 'verde' : 'gris'}`;
+    pill.textContent = d.estatus_sat || 'Sin estatus';
+    tdEstatus.appendChild(pill);
+
+    fila.append(tdPeriodo, tdTipo, tdIsr, tdIva, tdEstatus);
+    tablaBodyEl.appendChild(fila);
+  });
+}
+
+async function cargarDeclaraciones() {
+  // 1. Confirmar sesión activa
+  const { data: sesionData } = await supabaseClient.auth.getSession();
+  if (!sesionData.session) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  // 2. Obtener cliente_id de la URL
+  const clienteId = new URLSearchParams(window.location.search).get('cliente_id');
+  if (!clienteId) {
+    mostrarError('No se especificó ningún cliente.');
+    return;
+  }
+
+  // 3. Obtener datos del cliente (RLS ya filtra si no tienes acceso)
+  const { data: cliente, error: errorCliente } = await supabaseClient
+    .from('clientes')
+    .select('id, nombre, rfc')
+    .eq('id', clienteId)
+    .single();
+
+  if (errorCliente || !cliente) {
+    mostrarError('No tienes acceso a este cliente o no existe.');
+    return;
+  }
+
+  nombreClienteEl.textContent = cliente.nombre;
+  rfcClienteEl.textContent = cliente.rfc ? `RFC: ${cliente.rfc}` : '';
+
+  // 4. Obtener declaraciones de ese cliente
+  const { data: declaraciones, error: errorDeclaraciones } = await supabaseClient
+    .from('declaraciones')
+    .select('ejercicio, mes, tipo_declaracion, isr, iva, estatus_sat')
+    .eq('cliente_id', clienteId);
+
+  if (errorDeclaraciones) {
+    mostrarError('No se pudieron cargar las declaraciones de este cliente.');
+    return;
+  }
+
+  // 5. Mostrar todo
+  estadoCargaEl.style.display = 'none';
+  heatmapCardEl.style.display = 'block';
+  tablaCardEl.style.display = 'block';
+
+  renderHeatmap(declaraciones || []);
+  renderTabla(declaraciones || []);
+}
+
+document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'index.html';
+});
+
+cargarDeclaraciones().catch((err) => {
+  console.error(err);
+  mostrarError('Ocurrió un error al cargar la información. Revisa la consola para más detalles.');
+});
 

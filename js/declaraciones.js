@@ -454,3 +454,4 @@ iniciar().catch((err) => {
   console.error(err);
   mostrarError('Ocurrió un error al cargar la información. Revisa la consola para más detalles.');
 });
+

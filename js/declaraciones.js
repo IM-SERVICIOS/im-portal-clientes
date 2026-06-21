@@ -37,6 +37,35 @@ const tablaDeclaracionesBodyEl = document.getElementById('tablaDeclaracionesBody
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
+// La columna "mes" en Supabase guarda el nombre del mes en español
+// (ej. "Abril"), no un número. Estas dos funciones normalizan ese
+// valor para poder ordenar, agrupar y comparar correctamente, sin
+// importar si en algún registro llegara a guardarse como número.
+const NOMBRE_MES_A_NUMERO = {
+  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+  julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12
+};
+
+function mesANumero(valor) {
+  if (typeof valor === 'number') return valor;
+  if (typeof valor === 'string') {
+    const limpio = valor.trim();
+    const comoNumero = Number(limpio);
+    if (!Number.isNaN(comoNumero) && limpio !== '') return comoNumero;
+    return NOMBRE_MES_A_NUMERO[limpio.toLowerCase()] || null;
+  }
+  return null;
+}
+
+function nombreMes(valor) {
+  const numero = mesANumero(valor);
+  if (numero && MESES_LARGO[numero - 1]) {
+    const nombre = MESES_LARGO[numero - 1];
+    return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+  }
+  return typeof valor === 'string' && valor.trim() !== '' ? valor : '—';
+}
+
 let declaracionesGenerales = [];
 let clientesMapa = {};
 
@@ -103,7 +132,7 @@ function renderTablaGeneral() {
 
   filtradas = [...filtradas].sort((a, b) => {
     if (a.ejercicio !== b.ejercicio) return b.ejercicio - a.ejercicio;
-    return b.mes - a.mes;
+    return mesANumero(b.mes) - mesANumero(a.mes);
   });
 
   tablaGeneralBodyEl.innerHTML = '';
@@ -126,7 +155,7 @@ function renderTablaGeneral() {
     tdCliente.textContent = clientesMapa[d.cliente_id] || `Cliente ${d.cliente_id}`;
 
     const tdPeriodo = document.createElement('td');
-    tdPeriodo.textContent = `${MESES_LARGO[d.mes - 1] || d.mes} ${d.ejercicio}`;
+    tdPeriodo.textContent = `${nombreMes(d.mes)} ${d.ejercicio}`;
 
     const tdTipo = document.createElement('td');
     tdTipo.textContent = d.tipo_declaracion || '—';
@@ -232,18 +261,22 @@ function crearCelda(year, mesIndex, entradas) {
   }
   celda.classList.add(estado);
 
-  const nombreMes = MESES_LARGO[mesIndex];
+  const nombreMesActual = MESES_LARGO[mesIndex];
   celda.title = total === 0
-    ? `${nombreMes} ${year}: sin declaración registrada`
-    : `${nombreMes} ${year}: ${presentadas}/${total} presentadas`;
+    ? `${nombreMesActual} ${year}: sin declaración registrada`
+    : `${nombreMesActual} ${year}: ${presentadas}/${total} presentadas`;
 
   return celda;
 }
 
 function renderHeatmap(declaraciones) {
+  // Agrupar por "ejercicio-mes", usando el número de mes normalizado
+  // (la columna real guarda el nombre, ej. "Abril").
   const mapa = {};
   declaraciones.forEach(d => {
-    const clave = `${d.ejercicio}-${d.mes}`;
+    const numeroMes = mesANumero(d.mes);
+    if (!numeroMes) return;
+    const clave = `${d.ejercicio}-${numeroMes}`;
     if (!mapa[clave]) mapa[clave] = [];
     mapa[clave].push(d);
   });
@@ -314,14 +347,14 @@ function renderTablaCliente(declaraciones) {
 
   const ordenadas = [...declaraciones].sort((a, b) => {
     if (a.ejercicio !== b.ejercicio) return b.ejercicio - a.ejercicio;
-    return b.mes - a.mes;
+    return mesANumero(b.mes) - mesANumero(a.mes);
   });
 
   ordenadas.forEach(d => {
     const fila = document.createElement('tr');
 
     const tdPeriodo = document.createElement('td');
-    tdPeriodo.textContent = `${MESES_LARGO[d.mes - 1] || d.mes} ${d.ejercicio}`;
+    tdPeriodo.textContent = `${nombreMes(d.mes)} ${d.ejercicio}`;
 
     const tdTipo = document.createElement('td');
     tdTipo.textContent = d.tipo_declaracion || '—';

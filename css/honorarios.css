@@ -94,6 +94,11 @@
   color: var(--dorado-acento);
 }
 
+.estatus-pill.fuera-presupuesto {
+  background: rgba(91, 63, 160, 0.12);
+  color: #5b3fa0;
+}
+
 @media (max-width: 720px) {
   .filtros-card {
     flex-direction: column;

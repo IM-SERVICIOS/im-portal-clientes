@@ -1,137 +1,145 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<title>Honorarios | Portal de Clientes - IM Servicios Contables</title>
-
-<link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/honorarios.css">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Honorarios · IM Servicios Contables</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/honorarios.css" />
 </head>
+<body>
 
-<body class="dashboard-body">
+  <!-- ══════════════════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⚖</span>
+      <div class="logo-texto">
+        <strong>IM</strong>
+        <small>Servicios Contables</small>
+      </div>
+    </div>
 
-<div class="dashboard-shell">
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"    class="nav-item">
+        <span class="nav-icono">⊞</span> Dashboard
+      </a>
+      <a href="honorarios.html"   class="nav-item activo">
+        <span class="nav-icono">$</span> Honorarios
+      </a>
+      <a href="declaraciones.html" class="nav-item">
+        <span class="nav-icono">📋</span> Declaraciones
+      </a>
+      <a href="#" class="nav-item deshabilitado" title="Próximamente">
+        <span class="nav-icono">📂</span> Documentos
+      </a>
+    </nav>
 
-    <aside class="sidebar">
+    <div class="sidebar-footer">
+      <div class="usuario-info">
+        <div class="usuario-avatar" id="usuarioAvatar">–</div>
+        <div>
+          <p class="usuario-email" id="nombreUsuario">Cargando…</p>
+          <p class="usuario-rol"   id="rolUsuario">–</p>
+        </div>
+      </div>
+      <button id="btnCerrarSesion" class="btn-cerrar-sesion">
+        Cerrar sesión
+      </button>
+    </div>
+  </aside>
 
-        <div class="sidebar-logo">
-            <img src="assets/logo.png" alt="IM Servicios Contables">
+  <!-- ══════════════════════════════════════════════
+       CONTENIDO PRINCIPAL
+  ══════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <header class="page-header">
+      <div>
+        <h1 class="page-titulo">Honorarios</h1>
+        <p class="page-subtitulo">Estado de cuenta y pagos</p>
+      </div>
+    </header>
+
+    <!-- Estado de carga / error -->
+    <p id="estadoCarga" class="estado-carga">Cargando información…</p>
+
+    <!-- Contenido principal (oculto hasta que cargue) -->
+    <div id="contenidoHonorarios" style="display:none;">
+
+      <!-- ── KPIs ─────────────────────────────────── -->
+      <section class="kpi-grid">
+
+        <div class="kpi-card">
+          <p class="kpi-etiqueta">Total registros</p>
+          <p class="kpi-valor" id="kpiTotalHonorarios">–</p>
         </div>
 
-        <nav class="sidebar-nav">
-            <a href="dashboard.html" class="nav-item">Mis Clientes</a>
-            <a href="declaraciones.html" class="nav-item">Declaraciones</a>
-            <a href="honorarios.html" class="nav-item active">Honorarios</a>
-            <a href="documentos.html" class="nav-item">Documentos</a>
-        </nav>
+        <div class="kpi-card verde">
+          <p class="kpi-etiqueta">Total cobrado</p>
+          <p class="kpi-valor" id="kpiCobrado">–</p>
+        </div>
 
-        <button id="btnCerrarSesion" class="sidebar-logout">Cerrar Sesión</button>
+        <div class="kpi-card amarillo">
+          <p class="kpi-etiqueta">Por cobrar</p>
+          <p class="kpi-valor" id="kpiPorCobrar">–</p>
+        </div>
 
-    </aside>
+        <div class="kpi-card rojo">
+          <p class="kpi-etiqueta">Clientes con adeudo</p>
+          <p class="kpi-valor" id="kpiClientesAdeudo">–</p>
+        </div>
 
-    <main class="dashboard-main">
+      </section>
 
-        <header class="dashboard-header">
-            <div>
-                <h1>Honorarios</h1>
-                <p class="subtitle">Estado de pago de honorarios de tus clientes</p>
-            </div>
-            <div class="usuario-info">
-                <span id="nombreUsuario">Cargando...</span>
-                <span id="rolUsuario" class="badge-rol"></span>
-            </div>
-        </header>
+      <!-- ── Filtros ────────────────────────────────── -->
+      <div class="filtros-card">
 
-        <section id="estadoCarga" class="estado-carga">Cargando honorarios...</section>
+        <div class="filtro-campo">
+          Cliente
+          <select id="filtroCliente">
+            <option value="todos">Todos los clientes</option>
+            <!-- Opciones insertadas por honorarios.js -->
+          </select>
+        </div>
 
-        <section id="contenidoHonorarios" style="display:none;">
+        <div class="filtro-campo">
+          Estatus
+          <select id="filtroEstatus">
+            <option value="todos">Todos</option>
+            <option value="pagado">Pagado</option>
+            <option value="falta_pago">Falta pago</option>
+          </select>
+        </div>
 
-            <div class="kpi-grid">
+      </div>
 
-                <div class="kpi-card">
-                    <div class="kpi-icono kpi-1">💼</div>
-                    <div class="kpi-texto">
-                        <p class="kpi-label">Honorarios registrados</p>
-                        <p class="kpi-valor" id="kpiTotalHonorarios">0</p>
-                    </div>
-                </div>
+      <!-- ── Tabla ──────────────────────────────────── -->
+      <div class="tabla-card">
+        <table class="tabla-honorarios">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Periodo</th>
+              <th>Importe</th>
+              <th>Estatus</th>
+              <th>Fecha pago</th>
+            </tr>
+          </thead>
+          <tbody id="tablaHonorariosBody">
+            <!-- Filas insertadas por honorarios.js -->
+          </tbody>
+        </table>
+      </div>
 
-                <div class="kpi-card">
-                    <div class="kpi-icono kpi-3">✅</div>
-                    <div class="kpi-texto">
-                        <p class="kpi-label">Cobrado</p>
-                        <p class="kpi-valor" id="kpiCobrado">$0.00</p>
-                    </div>
-                </div>
+    </div><!-- /contenidoHonorarios -->
 
-                <div class="kpi-card">
-                    <div class="kpi-icono kpi-4">⚠️</div>
-                    <div class="kpi-texto">
-                        <p class="kpi-label">Por cobrar</p>
-                        <p class="kpi-valor" id="kpiPorCobrar">$0.00</p>
-                    </div>
-                </div>
+  </main>
 
-                <div class="kpi-card">
-                    <div class="kpi-icono kpi-2">👥</div>
-                    <div class="kpi-texto">
-                        <p class="kpi-label">Clientes con adeudo</p>
-                        <p class="kpi-valor" id="kpiClientesAdeudo">0</p>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="filtros-card">
-
-                <label class="filtro-campo">
-                    Cliente
-                    <select id="filtroCliente">
-                        <option value="todos">Todos</option>
-                    </select>
-                </label>
-
-                <label class="filtro-campo">
-                    Estatus
-                    <select id="filtroEstatus">
-                        <option value="todos">Todos</option>
-                        <option value="pagado">Pagado</option>
-                        <option value="falta_pago">Falta pago</option>
-                    </select>
-                </label>
-
-            </div>
-
-            <div class="tabla-card">
-                <table class="tabla-honorarios">
-                    <thead>
-                        <tr>
-                            <th>Cliente</th>
-                            <th>Periodo</th>
-                            <th>Importe</th>
-                            <th>Estatus</th>
-                            <th>Fecha de pago</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaHonorariosBody"></tbody>
-                </table>
-            </div>
-
-        </section>
-
-    </main>
-
-</div>
-
-<script src="js/supabase.js"></script>
-<script src="js/honorarios.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/honorarios.js"></script>
 
 </body>
 </html>
-

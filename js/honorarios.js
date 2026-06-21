@@ -1,6 +1,11 @@
 // =====================================================
 // Honorarios - Portal de Clientes IM Servicios Contables
 // =====================================================
+// Columnas reales de la tabla "honorarios":
+//   cliente_id, concepto, monto, fuera_presupuesto,
+//   fecha_remision, estatus_pago
+// (no existen "ejercicio", "mes", "importe" ni "fecha_pago")
+// =====================================================
 
 const nombreUsuarioEl = document.getElementById('nombreUsuario');
 const rolUsuarioEl = document.getElementById('rolUsuario');
@@ -15,36 +20,6 @@ const kpiClientesAdeudoEl = document.getElementById('kpiClientesAdeudo');
 const filtroClienteEl = document.getElementById('filtroCliente');
 const filtroEstatusEl = document.getElementById('filtroEstatus');
 const tablaBodyEl = document.getElementById('tablaHonorariosBody');
-
-const MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-
-// Por si "mes" llega como nombre en español (ej. "Abril") en vez de
-// número: estas funciones normalizan el valor para ordenar y mostrar
-// correctamente sin importar el formato guardado en la tabla.
-const NOMBRE_MES_A_NUMERO = {
-  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
-  julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12
-};
-
-function mesANumero(valor) {
-  if (typeof valor === 'number') return valor;
-  if (typeof valor === 'string') {
-    const limpio = valor.trim();
-    const comoNumero = Number(limpio);
-    if (!Number.isNaN(comoNumero) && limpio !== '') return comoNumero;
-    return NOMBRE_MES_A_NUMERO[limpio.toLowerCase()] || null;
-  }
-  return null;
-}
-
-function nombreMes(valor) {
-  const numero = mesANumero(valor);
-  if (numero && MESES_LARGO[numero - 1]) {
-    const nombre = MESES_LARGO[numero - 1];
-    return nombre.charAt(0).toUpperCase() + nombre.slice(1);
-  }
-  return typeof valor === 'string' && valor.trim() !== '' ? valor : '—';
-}
 
 // Estado en memoria: se carga una sola vez y los filtros solo
 // vuelven a pintar la tabla, sin volver a consultar Supabase.
@@ -62,9 +37,12 @@ function formatearFecha(fecha) {
   return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// Valores confirmados en la base de datos: "PAGADO" / "FALTA PAGO"
+// "Pagado" se compara sin importar mayúsculas/espacios: tu dato real
+// usa "Pendiente" para lo no pagado, así que cualquier valor que no
+// sea exactamente "pagado" (ignorando mayúsculas) se trata como
+// pendiente de cobro.
 function esPagado(estatusPago) {
-  return typeof estatusPago === 'string' && estatusPago.trim().toUpperCase() === 'PAGADO';
+  return typeof estatusPago === 'string' && estatusPago.trim().toLowerCase() === 'pagado';
 }
 
 function esAdmin(rol) {
@@ -93,10 +71,10 @@ function calcularKpis(honorarios) {
 
   const cobrado = honorarios
     .filter(h => esPagado(h.estatus_pago))
-    .reduce((suma, h) => suma + Number(h.importe || 0), 0);
+    .reduce((suma, h) => suma + Number(h.monto || 0), 0);
 
   const pendientes = honorarios.filter(h => !esPagado(h.estatus_pago));
-  const porCobrar = pendientes.reduce((suma, h) => suma + Number(h.importe || 0), 0);
+  const porCobrar = pendientes.reduce((suma, h) => suma + Number(h.monto || 0), 0);
 
   const clientesConAdeudo = new Set(pendientes.map(h => h.cliente_id)).size;
 
@@ -118,13 +96,15 @@ function renderTabla() {
 
   if (estatusSeleccionado === 'pagado') {
     filtrados = filtrados.filter(h => esPagado(h.estatus_pago));
-  } else if (estatusSeleccionado === 'falta_pago') {
+  } else if (estatusSeleccionado === 'pendiente') {
     filtrados = filtrados.filter(h => !esPagado(h.estatus_pago));
   }
 
+  // Más reciente primero, según la fecha en que se remitió el cargo
   filtrados = [...filtrados].sort((a, b) => {
-    if (a.ejercicio !== b.ejercicio) return b.ejercicio - a.ejercicio;
-    return mesANumero(b.mes) - mesANumero(a.mes);
+    const fechaA = a.fecha_remision ? new Date(a.fecha_remision).getTime() : 0;
+    const fechaB = b.fecha_remision ? new Date(b.fecha_remision).getTime() : 0;
+    return fechaB - fechaA;
   });
 
   tablaBodyEl.innerHTML = '';
@@ -132,7 +112,7 @@ function renderTabla() {
   if (filtrados.length === 0) {
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
-    celda.colSpan = 5;
+    celda.colSpan = 6;
     celda.className = 'estado-vacio';
     celda.textContent = 'No hay honorarios que coincidan con este filtro.';
     fila.appendChild(celda);
@@ -146,11 +126,21 @@ function renderTabla() {
     const tdCliente = document.createElement('td');
     tdCliente.textContent = clientesMapa[h.cliente_id] || `Cliente ${h.cliente_id}`;
 
-    const tdPeriodo = document.createElement('td');
-    tdPeriodo.textContent = `${nombreMes(h.mes)} ${h.ejercicio}`;
+    const tdConcepto = document.createElement('td');
+    tdConcepto.textContent = h.concepto || '—';
 
-    const tdImporte = document.createElement('td');
-    tdImporte.textContent = formatearMoneda(h.importe);
+    const tdMonto = document.createElement('td');
+    tdMonto.textContent = formatearMoneda(h.monto);
+
+    const tdTipo = document.createElement('td');
+    if (h.fuera_presupuesto) {
+      const tipoPill = document.createElement('span');
+      tipoPill.className = 'estatus-pill fuera-presupuesto';
+      tipoPill.textContent = 'Fuera de presupuesto';
+      tdTipo.appendChild(tipoPill);
+    } else {
+      tdTipo.textContent = '—';
+    }
 
     const tdEstatus = document.createElement('td');
     const pill = document.createElement('span');
@@ -160,9 +150,9 @@ function renderTabla() {
     tdEstatus.appendChild(pill);
 
     const tdFecha = document.createElement('td');
-    tdFecha.textContent = pagado ? formatearFecha(h.fecha_pago) : '—';
+    tdFecha.textContent = formatearFecha(h.fecha_remision);
 
-    fila.append(tdCliente, tdPeriodo, tdImporte, tdEstatus, tdFecha);
+    fila.append(tdCliente, tdConcepto, tdMonto, tdTipo, tdEstatus, tdFecha);
     tablaBodyEl.appendChild(fila);
   });
 }
@@ -233,15 +223,16 @@ async function cargarHonorarios() {
   clientes.forEach(c => { clientesMapa[c.id] = c.nombre; });
   poblarFiltroClientes(clientes);
 
-  // 4. Obtener honorarios de esos clientes
+  // 4. Obtener honorarios de esos clientes (columnas reales)
   const idsClientes = clientes.map(c => c.id);
 
   const { data: honorarios, error: errorHonorarios } = await supabaseClient
     .from('honorarios')
-    .select('cliente_id, ejercicio, mes, importe, estatus_pago, fecha_pago')
+    .select('cliente_id, concepto, monto, fuera_presupuesto, fecha_remision, estatus_pago')
     .in('cliente_id', idsClientes);
 
   if (errorHonorarios) {
+    console.error('Error cargando honorarios:', errorHonorarios);
     mostrarError('No se pudieron cargar los honorarios.');
     return;
   }

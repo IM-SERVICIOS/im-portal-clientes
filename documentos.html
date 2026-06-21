@@ -1,1 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentos | IM Servicios Contables</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/documentos.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="dashboard-body">
+
+<div class="dashboard-shell" id="dashboardShell">
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-top">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="IM Servicios Contables" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="sidebar-logo-fallback" aria-hidden="true">IM</div>
+                <div class="sidebar-wordmark">
+                    <strong>IM Servicios</strong>
+                    <span>Contables</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <span class="sidebar-nav-label">Portal de cliente</span>
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">🏢</span> Mis Cuentas
+            </a>
+            <a href="declaraciones.html" class="nav-item">
+                <span class="nav-icon">📄</span> Declaraciones
+            </a>
+            <a href="honorarios.html" class="nav-item">
+                <span class="nav-icon">💼</span> Honorarios
+            </a>
+            <a href="documentos.html" class="nav-item active">
+                <span class="nav-icon">🗂️</span> Documentos
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button id="btnCerrarSesion" class="sidebar-logout">
+                <span class="nav-icon">⏻</span> Cerrar Sesión
+            </button>
+        </div>
+
+    </aside>
+
+    <main class="dashboard-main">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button class="btn-menu-movil" id="btnMenuMovil" aria-label="Abrir menú">
+                    <span></span><span></span><span></span>
+                </button>
+                <div>
+                    <h1>Documentos</h1>
+                    <p class="subtitle">Repositorio digital del cliente.</p>
+                </div>
+            </div>
+            <div class="usuario-info">
+                <div class="usuario-texto">
+                    <span id="nombreUsuario">Cargando...</span>
+                    <span id="rolUsuario" class="badge-rol"></span>
+                </div>
+                <div class="avatar-usuario" id="avatarUsuario" aria-hidden="true">··</div>
+            </div>
+        </header>
+
+        <div class="dashboard-content documentos-content">
+
+            <!-- Selector de cliente + buscador + acciones -->
+            <section class="docs-toolbar">
+
+                <div class="docs-toolbar-fila">
+
+                    <div class="campo-cliente">
+                        <label for="selectorCliente">Cliente</label>
+                        <select id="selectorCliente"></select>
+                    </div>
+
+                    <div class="campo-buscador">
+                        <span class="icono-buscar" aria-hidden="true">🔍</span>
+                        <input type="search" id="buscadorDocumentos" placeholder="Buscar por nombre, folio, mes o responsable…">
+                    </div>
+
+                    <div class="docs-vista-toggle" role="group" aria-label="Tipo de vista">
+                        <button id="vistaTarjetas" class="vista-btn activo" type="button" title="Vista de tarjetas">▦</button>
+                        <button id="vistaTabla" class="vista-btn" type="button" title="Vista de tabla">☰</button>
+                    </div>
+
+                </div>
+
+                <div class="docs-toolbar-fila docs-filtros">
+
+                    <select id="filtroAnio">
+                        <option value="todos">Todos los años</option>
+                    </select>
+
+                    <select id="filtroTipo">
+                        <option value="todos">Todos los tipos</option>
+                    </select>
+
+                    <select id="ordenarFecha">
+                        <option value="desc">Más recientes primero</option>
+                        <option value="asc">Más antiguos primero</option>
+                    </select>
+
+                    <label class="check-recientes">
+                        <input type="checkbox" id="filtroRecientes">
+                        Solo recientes (últimos 7 días)
+                    </label>
+
+                    <div class="docs-toolbar-spacer"></div>
+
+                    <span class="contador-resultados" id="contadorResultados">0 documentos</span>
+
+                    <button class="btn btn-secondary btn-sm" id="btnDescargaMultiple" disabled>
+                        ⬇ Descargar selección (<span id="contadorSeleccion">0</span>)
+                    </button>
+
+                </div>
+
+            </section>
+
+            <div class="docs-layout">
+
+                <!-- Rail de categorías estilo pestañas de carpeta -->
+                <nav class="categorias-rail" id="categoriasRail" aria-label="Categorías de documentos"></nav>
+
+                <div class="docs-panel">
+
+                    <div class="docs-panel-header">
+                        <div>
+                            <h2 id="categoriaTitulo">Acuses y líneas de captura</h2>
+                            <p id="categoriaDescripcion" class="seccion-subtitulo">Por presentación mensual.</p>
+                        </div>
+                    </div>
+
+                    <section id="estadoCargaDocumentos" class="estado-carga">
+                        <span class="spinner" aria-hidden="true"></span>
+                        Cargando documentos...
+                    </section>
+
+                    <section id="contenedorDocumentos" class="contenedor-documentos"></section>
+
+                </div>
+
+                <!-- Historial de archivos consultados recientemente -->
+                <aside class="historial-panel">
+                    <h3>Historial reciente</h3>
+                    <p class="historial-subtexto">Últimos documentos vistos o descargados en este equipo.</p>
+                    <ul id="historialArchivos" class="historial-lista">
+                        <li class="historial-vacio">Aún no has abierto documentos.</li>
+                    </ul>
+                </aside>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<!-- Modal de vista previa de PDF -->
+<div class="modal-overlay" id="modalVistaPrevia">
+    <div class="modal-pdf">
+        <div class="modal-pdf-header">
+            <div>
+                <h3 id="modalTitulo">Documento</h3>
+                <p id="modalSubtitulo" class="seccion-subtitulo"></p>
+            </div>
+            <div class="modal-pdf-acciones">
+                <a id="modalDescargar" class="btn btn-primary btn-sm" href="#" download>⬇ Descargar</a>
+                <button id="modalCerrar" class="btn btn-ghost btn-sm" type="button" aria-label="Cerrar">✕</button>
+            </div>
+        </div>
+        <div class="modal-pdf-cuerpo">
+            <iframe id="modalIframe" title="Vista previa del documento"></iframe>
+        </div>
+    </div>
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/documentos.js"></script>
+
+</body>
+</html>

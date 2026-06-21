@@ -1,0 +1,662 @@
+/* =====================================================
+   main.css — Portal de Clientes · IM Servicios Contables
+   ===================================================== */
+
+/* ── Variables ───────────────────────────────────── */
+:root {
+  /* Colores base */
+  --fondo:            #F5F6FA;
+  --tarjeta:          #FFFFFF;
+  --borde:            #E4E7EF;
+
+  /* Sidebar */
+  --sidebar-bg:       #0D1B2A;
+  --sidebar-texto:    #A8B3C4;
+  --sidebar-activo:   #FFFFFF;
+  --sidebar-hover:    rgba(255,255,255,0.07);
+  --sidebar-ancho:    220px;
+
+  /* Marca */
+  --primario:         #1A56DB;
+  --primario-suave:   rgba(26, 86, 219, 0.10);
+
+  /* Semáforo */
+  --exito:            #1D8A5E;
+  --exito-suave:      rgba(29, 138, 94, 0.12);
+  --dorado-acento:    #C89B3C;
+  --dorado-suave:     rgba(200, 155, 60, 0.14);
+  --peligro:          #C53030;
+  --peligro-suave:    rgba(197, 48, 48, 0.10);
+
+  /* Texto */
+  --texto-principal:  #1A202C;
+  --texto-secundario: #6B7694;
+
+  /* Tipografía */
+  --fuente:           'Inter', system-ui, -apple-system, sans-serif;
+  --radio:            10px;
+}
+
+/* ── Reset ───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--fuente);
+  font-size: 14px;
+  color: var(--texto-principal);
+  background: var(--fondo);
+  display: flex;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* ── Sidebar ─────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-ancho);
+  min-height: 100vh;
+  background: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 18px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.logo-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.logo-texto strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.03em;
+}
+
+.logo-texto small {
+  font-size: 10px;
+  color: var(--sidebar-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Nav */
+.sidebar-nav {
+  flex: 1;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--sidebar-texto);
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-item:hover {
+  background: var(--sidebar-hover);
+  color: #FFFFFF;
+}
+
+.nav-item.activo {
+  background: rgba(26, 86, 219, 0.25);
+  color: #FFFFFF;
+}
+
+.nav-item.deshabilitado {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nav-icono {
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Footer del sidebar */
+.sidebar-footer {
+  padding: 16px 14px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.usuario-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.usuario-info-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.usuario-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primario);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.usuario-email {
+  font-size: 12px;
+  color: #FFFFFF;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.usuario-rol {
+  font-size: 10px;
+  color: var(--sidebar-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 1px;
+}
+
+.btn-cerrar-sesion {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--sidebar-texto);
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  width: 100%;
+  text-align: left;
+}
+
+.btn-cerrar-sesion:hover {
+  border-color: rgba(255,255,255,0.4);
+  color: #FFFFFF;
+}
+
+/* ── Layout principal ────────────────────────────── */
+.main-content {
+  margin-left: var(--sidebar-ancho);
+  flex: 1;
+  padding: 28px 32px;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+/* ── Page header ─────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-titulo {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--texto-principal);
+  line-height: 1.2;
+}
+
+.page-subtitulo {
+  font-size: 13px;
+  color: var(--texto-secundario);
+  margin-top: 2px;
+}
+
+.volver-link {
+  font-size: 13px;
+  color: var(--primario);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.volver-link:hover { text-decoration: underline; }
+
+/* ── Estado de carga / error ─────────────────────── */
+.estado-carga {
+  color: var(--texto-secundario);
+  font-size: 14px;
+  padding: 12px 0;
+}
+
+.estado-error {
+  color: var(--peligro);
+  font-weight: 600;
+}
+
+.estado-vacio {
+  color: var(--texto-secundario);
+  font-size: 14px;
+  padding: 16px;
+}
+
+/* ── KPI Grid ────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  border-left: 4px solid var(--primario);
+}
+
+.kpi-card.amarillo { border-left-color: var(--dorado-acento); }
+.kpi-card.verde    { border-left-color: var(--exito); }
+.kpi-card.rojo     { border-left-color: var(--peligro); }
+
+.kpi-etiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-secundario);
+  margin-bottom: 8px;
+}
+
+.kpi-valor {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--texto-principal);
+  line-height: 1;
+}
+
+/* ── Sección título ──────────────────────────────── */
+.seccion-titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto-principal);
+  margin-bottom: 14px;
+}
+
+/* ── Resumen operativo ───────────────────────────── */
+.resumen-card {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.resumen-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.resumen-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resumen-icono {
+  font-size: 22px;
+}
+
+.resumen-label {
+  font-size: 12px;
+  color: var(--texto-secundario);
+  margin-bottom: 2px;
+}
+
+.resumen-valor {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--texto-principal);
+}
+
+/* ── Grid de clientes ────────────────────────────── */
+.clientes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.cliente-card {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.15s;
+}
+
+.cliente-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.cliente-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto-principal);
+}
+
+.cliente-rfc {
+  font-size: 12px;
+  color: var(--texto-secundario);
+  font-family: monospace;
+}
+
+/* Columnas financieras */
+.cliente-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--borde);
+  border-bottom: 1px solid var(--borde);
+}
+
+.cliente-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.col-etiqueta {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-secundario);
+}
+
+.col-valor {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  display: inline-block;
+}
+
+.col-valor.verde {
+  color: var(--exito);
+  background: var(--exito-suave);
+}
+
+.col-valor.rojo {
+  color: var(--peligro);
+  background: var(--peligro-suave);
+}
+
+.col-valor.gris {
+  color: var(--texto-secundario);
+  background: rgba(0,0,0,0.04);
+}
+
+/* Alerta de pago pendiente */
+.cliente-alerta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--peligro-suave);
+  border: 1px solid rgba(197, 48, 48, 0.2);
+  border-radius: 7px;
+  padding: 7px 10px;
+}
+
+.alerta-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  background: var(--peligro);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.alerta-texto {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--peligro);
+}
+
+.cliente-card button {
+  margin-top: 2px;
+  background: var(--primario-suave);
+  color: var(--primario);
+  border: none;
+  border-radius: 7px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-start;
+}
+
+.cliente-card button:hover {
+  background: var(--primario);
+  color: #fff;
+}
+
+/* KPI admin (cobrado) — aparece pegado al grid base */
+.kpi-admin {
+  margin-top: -10px;
+  margin-bottom: 24px;
+}
+
+/* ── Filtros ─────────────────────────────────────── */
+.filtros-card {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 16px 20px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.filtro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.filtro-campo select {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--texto-principal);
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: #fff;
+  min-width: 180px;
+}
+
+/* ── Tablas ──────────────────────────────────────── */
+.tabla-card {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 8px 20px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  overflow-x: auto;
+}
+
+.tabla-honorarios,
+.tabla-declaraciones {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabla-honorarios th,
+.tabla-declaraciones th {
+  text-align: left;
+  padding: 14px 12px 10px;
+  color: var(--texto-secundario);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--borde);
+}
+
+.tabla-honorarios td,
+.tabla-declaraciones td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: middle;
+}
+
+.tabla-honorarios tbody tr:last-child td,
+.tabla-declaraciones tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla-honorarios tbody tr:hover,
+.tabla-declaraciones tbody tr:hover {
+  background: var(--fondo);
+}
+
+/* ── Pills de estatus ────────────────────────────── */
+.estatus-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estatus-pill.pagado,
+.estatus-pill.verde {
+  background: var(--exito-suave);
+  color: var(--exito);
+}
+
+.estatus-pill.falta-pago,
+.estatus-pill.amarillo {
+  background: var(--dorado-suave);
+  color: var(--dorado-acento);
+}
+
+.estatus-pill.gris {
+  background: rgba(0,0,0,0.06);
+  color: var(--texto-secundario);
+}
+
+/* ── Badge cumplimiento (declaraciones) ──────────── */
+.badge-cumplimiento {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--exito-suave);
+  color: var(--exito);
+}
+
+.badge-cumplimiento.amarillo {
+  background: var(--dorado-suave);
+  color: var(--dorado-acento);
+}
+
+.badge-cumplimiento.gris {
+  background: rgba(0,0,0,0.06);
+  color: var(--texto-secundario);
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    position: relative;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 16px;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filtros-card {
+    flex-direction: column;
+  }
+
+  .filtro-campo select {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}

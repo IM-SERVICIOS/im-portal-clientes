@@ -1,0 +1,190 @@
+/* =====================================================
+   IM Servicios Contables — subir-documento.css
+   Requiere css/tokens.css.
+   ===================================================== */
+
+@import url('tokens.css');
+
+/* ---- Layout compartido (idéntico a dashboard.css / documentos.css) ---- */
+
+.dashboard-shell { display: flex; min-height: 100vh; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(8,20,16,0.45); z-index: 40; }
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: linear-gradient(185deg, var(--verde-950) 0%, var(--verde-900) 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 22px 16px;
+  z-index: 50;
+}
+.sidebar-top { padding: 0 8px 22px; }
+.sidebar-logo { display: flex; align-items: center; gap: 11px; }
+.sidebar-logo img { height: 34px; width: auto; }
+.sidebar-logo-fallback { display: none; width: 34px; height: 34px; border-radius: 9px; background: var(--verde-500); color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 13px; align-items: center; justify-content: center; }
+.sidebar-wordmark { display: flex; flex-direction: column; line-height: 1.2; font-family: var(--font-display); }
+.sidebar-wordmark strong { font-size: 14.5px; font-weight: 700; }
+.sidebar-wordmark span { font-size: 11.5px; color: var(--verde-200); letter-spacing: 0.06em; text-transform: uppercase; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; flex: 1; }
+.sidebar-nav-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.38); padding: 10px 12px 8px; }
+.nav-item { display: flex; align-items: center; gap: 11px; padding: 10.5px 12px; border-radius: var(--r-md); font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.72); transition: background .15s ease, color .15s ease; }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.nav-item.active { background: var(--verde-600); color: #fff; box-shadow: var(--shadow-sm); }
+.sidebar-bottom { padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+.sidebar-logout { display: flex; align-items: center; gap: 10px; width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.14); color: rgba(255,255,255,0.78); padding: 10px 12px; border-radius: var(--r-md); font-size: 13.5px; font-weight: 600; transition: background .15s ease, border-color .15s ease; }
+.sidebar-logout:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.26); }
+
+.dashboard-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dashboard-header { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 32px; height: var(--header-h); background: rgba(245, 248, 246, 0.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--ink-100); }
+.header-left { display: flex; align-items: center; gap: 14px; }
+.dashboard-header h1 { font-size: 21px; font-weight: 700; }
+.dashboard-header .subtitle { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-500); }
+.btn-menu-movil { display: none; flex-direction: column; justify-content: center; gap: 4px; width: 36px; height: 36px; border-radius: var(--r-sm); border: 1px solid var(--ink-200); background: var(--paper); }
+.btn-menu-movil span { display: block; width: 16px; height: 2px; margin: 0 auto; background: var(--ink-700); border-radius: 2px; }
+.usuario-info { display: flex; align-items: center; gap: 11px; }
+.usuario-texto { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+#nombreUsuario { font-size: 13.5px; font-weight: 600; color: var(--ink-900); }
+.badge-rol { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--verde-700); background: var(--verde-100); padding: 2.5px 9px; border-radius: var(--r-pill); }
+.avatar-usuario { width: 38px; height: 38px; border-radius: 50%; background: var(--verde-700); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 13px; flex-shrink: 0; box-shadow: var(--shadow-xs); }
+
+.dashboard-content { padding: 28px 32px 60px; max-width: var(--content-max); width: 100%; margin: 0 auto; }
+
+.estado-carga { display: flex; align-items: center; gap: 10px; padding: 26px; border-radius: var(--r-lg); background: var(--paper); border: 1px solid var(--ink-100); color: var(--ink-500); font-size: 13.5px; }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid var(--verde-100); border-top-color: var(--verde-600); animation: girar .7s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+@media (max-width: 880px) {
+  .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform .22s ease; box-shadow: var(--shadow-lg); }
+  .dashboard-shell.menu-abierto .sidebar { transform: translateX(0); }
+  .dashboard-shell.menu-abierto .sidebar-overlay { display: block; }
+  .btn-menu-movil { display: flex; }
+  .dashboard-header { padding: 0 18px; }
+  .dashboard-content { padding: 20px 18px 48px; }
+  .usuario-texto { display: none; }
+}
+
+/* ---------------------------------------------------
+   Aviso de acceso restringido
+   --------------------------------------------------- */
+
+.aviso-sin-permiso {
+  max-width: 460px;
+  margin: 40px auto;
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--r-lg);
+  padding: 36px 28px;
+  box-shadow: var(--shadow-xs);
+}
+.aviso-sin-permiso h2 { font-size: 17px; margin-bottom: 8px; }
+.aviso-sin-permiso p { font-size: 13.5px; color: var(--ink-500); line-height: 1.55; margin: 0 0 18px; }
+
+/* ---------------------------------------------------
+   Formulario
+   --------------------------------------------------- */
+
+.form-subir {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-card {
+  background: var(--paper);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-xs);
+}
+
+.form-card-titulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--verde-800);
+  margin-bottom: 14px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.campo { display: flex; flex-direction: column; gap: 5px; }
+.campo-ancho { grid-column: 1 / -1; }
+
+.campo label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.campo input[type="text"],
+.campo input[type="date"],
+.campo input[type="number"],
+.campo select,
+.campo textarea {
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--ink-900);
+  background: var(--bg);
+  border: 1px solid var(--ink-200);
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+}
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  background: var(--paper);
+  border-color: var(--verde-400);
+}
+.campo textarea { resize: vertical; font-family: inherit; }
+.campo input[readonly] { background: var(--ink-100); color: var(--ink-500); }
+
+.campo-archivo {
+  border: 1.5px dashed var(--ink-200);
+  border-radius: var(--r-md);
+  padding: 18px;
+  margin-bottom: 16px;
+  background: var(--verde-50);
+}
+.campo-archivo input[type="file"] {
+  font-size: 13px;
+  width: 100%;
+}
+.archivo-ayuda {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-500);
+}
+
+.form-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.mensaje-formulario {
+  font-size: 13px;
+  font-weight: 600;
+}
+.mensaje-formulario.exito { color: var(--verde-700); }
+.mensaje-formulario.error { color: var(--red-600); }
+
+#btnSubir[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 620px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .form-acciones { flex-direction: column; align-items: stretch; }
+  .form-acciones .btn { width: 100%; }
+}

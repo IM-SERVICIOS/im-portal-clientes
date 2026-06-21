@@ -192,7 +192,7 @@ async function cargarHonorarios() {
       .eq('activo', true);
 
     if (error) {
-      mostrarError('No se pudieron cargar tus clientes.');
+      mostrarError(`No se pudieron cargar tus clientes: ${error.message || 'error desconocido'}`);
       return;
     }
     clientes = data;
@@ -203,7 +203,7 @@ async function cargarHonorarios() {
       .eq('usuario_id', usuario.id);
 
     if (error) {
-      mostrarError('No se pudieron cargar tus clientes asignados.');
+      mostrarError(`No se pudieron cargar tus clientes asignados: ${error.message || 'error desconocido'}`);
       return;
     }
     clientes = (data || [])
@@ -233,7 +233,7 @@ async function cargarHonorarios() {
 
   if (errorHonorarios) {
     console.error('Error cargando honorarios:', errorHonorarios);
-    mostrarError('No se pudieron cargar los honorarios.');
+    mostrarError(`No se pudieron cargar los honorarios: ${errorHonorarios.message || 'error desconocido'}`);
     return;
   }
 
@@ -257,5 +257,5 @@ document.getElementById('btnCerrarSesion').addEventListener('click', async () =>
 
 cargarHonorarios().catch((err) => {
   console.error(err);
-  mostrarError('Ocurrió un error al cargar los honorarios. Revisa la consola para más detalles.');
+  mostrarError(`Ocurrió un error al cargar los honorarios: ${err.message || 'error desconocido'}`);
 });

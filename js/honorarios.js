@@ -18,6 +18,34 @@ const tablaBodyEl = document.getElementById('tablaHonorariosBody');
 
 const MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
+// Por si "mes" llega como nombre en español (ej. "Abril") en vez de
+// número: estas funciones normalizan el valor para ordenar y mostrar
+// correctamente sin importar el formato guardado en la tabla.
+const NOMBRE_MES_A_NUMERO = {
+  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+  julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12
+};
+
+function mesANumero(valor) {
+  if (typeof valor === 'number') return valor;
+  if (typeof valor === 'string') {
+    const limpio = valor.trim();
+    const comoNumero = Number(limpio);
+    if (!Number.isNaN(comoNumero) && limpio !== '') return comoNumero;
+    return NOMBRE_MES_A_NUMERO[limpio.toLowerCase()] || null;
+  }
+  return null;
+}
+
+function nombreMes(valor) {
+  const numero = mesANumero(valor);
+  if (numero && MESES_LARGO[numero - 1]) {
+    const nombre = MESES_LARGO[numero - 1];
+    return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+  }
+  return typeof valor === 'string' && valor.trim() !== '' ? valor : '—';
+}
+
 // Estado en memoria: se carga una sola vez y los filtros solo
 // vuelven a pintar la tabla, sin volver a consultar Supabase.
 let honorariosCargados = [];
@@ -96,7 +124,7 @@ function renderTabla() {
 
   filtrados = [...filtrados].sort((a, b) => {
     if (a.ejercicio !== b.ejercicio) return b.ejercicio - a.ejercicio;
-    return b.mes - a.mes;
+    return mesANumero(b.mes) - mesANumero(a.mes);
   });
 
   tablaBodyEl.innerHTML = '';
@@ -119,7 +147,7 @@ function renderTabla() {
     tdCliente.textContent = clientesMapa[h.cliente_id] || `Cliente ${h.cliente_id}`;
 
     const tdPeriodo = document.createElement('td');
-    tdPeriodo.textContent = `${MESES_LARGO[h.mes - 1] || h.mes} ${h.ejercicio}`;
+    tdPeriodo.textContent = `${nombreMes(h.mes)} ${h.ejercicio}`;
 
     const tdImporte = document.createElement('td');
     tdImporte.textContent = formatearMoneda(h.importe);
@@ -240,4 +268,3 @@ cargarHonorarios().catch((err) => {
   console.error(err);
   mostrarError('Ocurrió un error al cargar los honorarios. Revisa la consola para más detalles.');
 });
-

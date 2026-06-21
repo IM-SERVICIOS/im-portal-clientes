@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir documento | IM Servicios Contables</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/subir-documento.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="dashboard-body">
+
+<div class="dashboard-shell" id="dashboardShell">
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-top">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="IM Servicios Contables" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="sidebar-logo-fallback" aria-hidden="true">IM</div>
+                <div class="sidebar-wordmark">
+                    <strong>IM Servicios</strong>
+                    <span>Contables</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <span class="sidebar-nav-label">Portal de cliente</span>
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">🏢</span> Mis Cuentas
+            </a>
+            <a href="declaraciones.html" class="nav-item">
+                <span class="nav-icon">📄</span> Declaraciones
+            </a>
+            <a href="honorarios.html" class="nav-item">
+                <span class="nav-icon">💼</span> Honorarios
+            </a>
+            <a href="documentos.html" class="nav-item">
+                <span class="nav-icon">🗂️</span> Documentos
+            </a>
+            <a href="subir-documento.html" class="nav-item active admin-only">
+                <span class="nav-icon">⬆️</span> Subir documento
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button id="btnCerrarSesion" class="sidebar-logout">
+                <span class="nav-icon">⏻</span> Cerrar Sesión
+            </button>
+        </div>
+
+    </aside>
+
+    <main class="dashboard-main">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button class="btn-menu-movil" id="btnMenuMovil" aria-label="Abrir menú">
+                    <span></span><span></span><span></span>
+                </button>
+                <div>
+                    <h1>Subir documento</h1>
+                    <p class="subtitle">Agrega un archivo al repositorio digital de un cliente.</p>
+                </div>
+            </div>
+            <div class="usuario-info">
+                <div class="usuario-texto">
+                    <span id="nombreUsuario">Cargando...</span>
+                    <span id="rolUsuario" class="badge-rol"></span>
+                </div>
+                <div class="avatar-usuario" id="avatarUsuario" aria-hidden="true">··</div>
+            </div>
+        </header>
+
+        <div class="dashboard-content subir-content">
+
+            <!-- Se muestra solo si el usuario NO es administrador -->
+            <section id="bloqueSinPermiso" class="aviso-sin-permiso" style="display:none;">
+                <h2>No tienes permiso para ver esta página</h2>
+                <p>Subir documentos está disponible únicamente para cuentas de administrador. Si necesitas subir un archivo, pide a un administrador que lo haga o que te otorgue ese rol.</p>
+                <a href="dashboard.html" class="btn btn-primary">Volver al dashboard</a>
+            </section>
+
+            <section id="estadoCargaPermiso" class="estado-carga">
+                <span class="spinner" aria-hidden="true"></span>
+                Verificando tu cuenta...
+            </section>
+
+            <!-- Formulario (oculto hasta confirmar que es admin) -->
+            <form id="formSubirDocumento" class="form-subir" style="display:none;">
+
+                <div class="form-card">
+
+                    <h2 class="form-card-titulo">1. Cliente y categoría</h2>
+
+                    <div class="form-grid">
+                        <div class="campo">
+                            <label for="campoCliente">Cliente *</label>
+                            <select id="campoCliente" required></select>
+                        </div>
+                        <div class="campo">
+                            <label for="campoCategoria">Categoría *</label>
+                            <select id="campoCategoria" required></select>
+                        </div>
+                        <div class="campo" id="campoSubcategoriaWrap" style="display:none;">
+                            <label for="campoSubcategoria">Periodo *</label>
+                            <select id="campoSubcategoria"></select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="form-card">
+
+                    <h2 class="form-card-titulo">2. Detalles del documento</h2>
+
+                    <div class="form-grid">
+                        <div class="campo campo-ancho">
+                            <label for="campoNombre">Nombre del documento *</label>
+                            <input type="text" id="campoNombre" placeholder="Ej. Acuse ISR mayo 2026" required>
+                        </div>
+                        <div class="campo">
+                            <label for="campoFecha">Fecha *</label>
+                            <input type="date" id="campoFecha" required>
+                        </div>
+                        <div class="campo">
+                            <label for="campoEstatus">Estatus</label>
+                            <input type="text" id="campoEstatus" list="listaEstatus" placeholder="Ej. Vigente, Pagado, Pendiente...">
+                            <datalist id="listaEstatus">
+                                <option value="Vigente"></option>
+                                <option value="Presentado"></option>
+                                <option value="Pagado"></option>
+                                <option value="Pendiente"></option>
+                                <option value="Aprobado"></option>
+                                <option value="Concluido"></option>
+                                <option value="En proceso"></option>
+                                <option value="Vencido"></option>
+                            </datalist>
+                        </div>
+                        <div class="campo campo-ancho">
+                            <label for="campoObservaciones">Observaciones</label>
+                            <textarea id="campoObservaciones" rows="2" placeholder="Notas internas o para el cliente (opcional)"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Campos dinámicos según la categoría seleccionada -->
+                    <div class="form-grid" id="camposExtraContainer"></div>
+
+                </div>
+
+                <div class="form-card">
+
+                    <h2 class="form-card-titulo">3. Archivo</h2>
+
+                    <div class="campo-archivo">
+                        <input type="file" id="campoArchivo" accept=".pdf,image/*" required>
+                        <p class="archivo-ayuda">PDF o imagen. Se guardará en el Storage de Supabase y quedará disponible para ver y descargar desde Documentos.</p>
+                    </div>
+
+                    <div class="campo">
+                        <label for="campoSubidoPor">Subido por</label>
+                        <input type="text" id="campoSubidoPor" readonly>
+                    </div>
+
+                </div>
+
+                <div class="form-acciones">
+                    <span id="mensajeFormulario" class="mensaje-formulario"></span>
+                    <button type="submit" class="btn btn-primary" id="btnSubir">⬆ Subir documento</button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/subir-documento.js"></script>
+
+</body>
+</html>

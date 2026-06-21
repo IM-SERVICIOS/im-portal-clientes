@@ -1,0 +1,181 @@
+/* =====================================================
+   IM Servicios Contables — Design Tokens
+   Paleta verde corporativa inspirada en Stripe / Notion /
+   QuickBooks / HubSpot. Importado por dashboard.css y
+   documentos.css para mantener consistencia visual.
+   ===================================================== */
+
+:root {
+
+  /* ---- Verde corporativo ---- */
+  --verde-950: #07211A;
+  --verde-900: #0D3327;
+  --verde-800: #134A36;
+  --verde-700: #186144;
+  --verde-600: #1C7A52;
+  --verde-500: #239262;
+  --verde-400: #3DAD7B;
+  --verde-200: #B9E2CC;
+  --verde-100: #DCF1E4;
+  --verde-50:  #F1FAF5;
+
+  /* ---- Tinta / neutros (con leve matiz verde) ---- */
+  --ink-900: #122019;
+  --ink-700: #34453E;
+  --ink-500: #647069;
+  --ink-400: #8A958E;
+  --ink-300: #B6C0B9;
+  --ink-200: #D8E0DB;
+  --ink-100: #EAEFEC;
+  --paper:   #FFFFFF;
+  --bg:      #F5F8F6;
+
+  /* ---- Estatus ---- */
+  --amber-600: #B5710A;
+  --amber-100: #FCF0DA;
+  --red-600:   #B23A2E;
+  --red-100:   #FAE4E1;
+  --blue-600:  #2A5DAD;
+  --blue-100:  #E2EBFA;
+  --verde-ok-600: var(--verde-600);
+  --verde-ok-100: var(--verde-100);
+
+  /* ---- Tipografía ---- */
+  --font-display: 'Sora', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* ---- Sombras ---- */
+  --shadow-xs: 0 1px 2px rgba(18, 32, 25, 0.05);
+  --shadow-sm: 0 1px 3px rgba(18, 32, 25, 0.07), 0 1px 2px rgba(18, 32, 25, 0.04);
+  --shadow-md: 0 6px 16px -4px rgba(18, 32, 25, 0.10), 0 2px 6px -2px rgba(18, 32, 25, 0.06);
+  --shadow-lg: 0 16px 32px -8px rgba(18, 32, 25, 0.16), 0 4px 10px -2px rgba(18, 32, 25, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(35, 146, 98, 0.28);
+
+  /* ---- Radios ---- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* ---- Layout ---- */
+  --sidebar-w: 252px;
+  --header-h: 76px;
+  --content-max: 1280px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--ink-900);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+img { max-width: 100%; display: block; }
+
+::selection { background: var(--verde-200); color: var(--verde-950); }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--r-sm);
+}
+
+/* ---- Utilidades compartidas ---- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge-verde   { background: var(--verde-100); color: var(--verde-700); }
+.badge-ambar   { background: var(--amber-100); color: var(--amber-600); }
+.badge-rojo    { background: var(--red-100);   color: var(--red-600); }
+.badge-azul    { background: var(--blue-100);  color: var(--blue-600); }
+.badge-gris    { background: var(--ink-100);   color: var(--ink-500); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  padding: 9px 16px;
+  transition: background .15s ease, border-color .15s ease, transform .12s ease, box-shadow .15s ease;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--verde-700);
+  color: #fff;
+  box-shadow: var(--shadow-xs);
+}
+.btn-primary:hover { background: var(--verde-800); }
+
+.btn-secondary {
+  background: var(--paper);
+  color: var(--ink-700);
+  border-color: var(--ink-200);
+}
+.btn-secondary:hover { border-color: var(--verde-400); color: var(--verde-700); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-500);
+}
+.btn-ghost:hover { background: var(--ink-100); color: var(--ink-900); }
+
+.btn-sm { padding: 6px 12px; font-size: 12.5px; }
+
+.admin-only { display: none; }
+.es-admin .admin-only { display: revert; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}

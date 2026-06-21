@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | IM Servicios Contables</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="dashboard-body">
+
+<div class="dashboard-shell" id="dashboardShell">
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-top">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="IM Servicios Contables" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="sidebar-logo-fallback" aria-hidden="true">IM</div>
+                <div class="sidebar-wordmark">
+                    <strong>IM Servicios</strong>
+                    <span>Contables</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <span class="sidebar-nav-label">Portal de cliente</span>
+            <a href="dashboard.html" class="nav-item active">
+                <span class="nav-icon">🏢</span> Mis Cuentas
+            </a>
+            <a href="declaraciones.html" class="nav-item">
+                <span class="nav-icon">📄</span> Declaraciones
+            </a>
+            <a href="honorarios.html" class="nav-item">
+                <span class="nav-icon">💼</span> Honorarios
+            </a>
+            <a href="documentos.html" class="nav-item">
+                <span class="nav-icon">🗂️</span> Documentos
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button id="btnCerrarSesion" class="sidebar-logout">
+                <span class="nav-icon">⏻</span> Cerrar Sesión
+            </button>
+        </div>
+
+    </aside>
+
+    <main class="dashboard-main">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button class="btn-menu-movil" id="btnMenuMovil" aria-label="Abrir menú">
+                    <span></span><span></span><span></span>
+                </button>
+                <div>
+                    <h1>Dashboard</h1>
+                    <p class="subtitle">Resumen general de tu operación.</p>
+                </div>
+            </div>
+            <div class="usuario-info">
+                <div class="usuario-texto">
+                    <span id="nombreUsuario">Cargando...</span>
+                    <span id="rolUsuario" class="badge-rol"></span>
+                </div>
+                <div class="avatar-usuario" id="avatarUsuario" aria-hidden="true">··</div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+
+            <!-- Resumen de operación -->
+            <section class="resumen-panel">
+
+                <div class="resumen-textura" aria-hidden="true"></div>
+
+                <div class="resumen-encabezado">
+                    <span class="icono">📊</span>
+                    Resumen de tu operación
+                </div>
+
+                <div class="resumen-cuerpo">
+
+                    <div class="kpi-grid">
+
+                        <div class="kpi-card">
+                            <div class="kpi-icono kpi-1">👥</div>
+                            <div class="kpi-texto">
+                                <p class="kpi-label">Clientes activos</p>
+                                <p class="kpi-valor" id="kpiClientesActivos">0</p>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icono kpi-2">📄</div>
+                            <div class="kpi-texto">
+                                <p class="kpi-label">Declaraciones del mes</p>
+                                <p class="kpi-valor" id="kpiDeclaraciones">0</p>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icono kpi-3">💼</div>
+                            <div class="kpi-texto">
+                                <p class="kpi-label">Honorarios por cobrar</p>
+                                <p class="kpi-valor" id="kpiHonorarios">$0.00</p>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div class="kpi-icono kpi-4">🔔</div>
+                            <div class="kpi-texto">
+                                <p class="kpi-label">Declaraciones pendientes</p>
+                                <p class="kpi-valor" id="kpiPendientes">0</p>
+                            </div>
+                        </div>
+
+                        <div class="kpi-card admin-only">
+                            <div class="kpi-icono kpi-5">🏦</div>
+                            <div class="kpi-texto">
+                                <p class="kpi-label">Total cobrado</p>
+                                <p class="kpi-valor" id="kpiTotalCobrado">$0.00</p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- Indicadores adicionales -->
+            <section class="pendientes-grid">
+
+                <div class="pendiente-card">
+                    <div class="pendiente-info">
+                        <div class="pendiente-icono">📑</div>
+                        <div>
+                            <h4>Declaraciones pendientes</h4>
+                            <p>Por presentar este mes</p>
+                        </div>
+                    </div>
+                    <span class="pendiente-valor" id="pendienteDeclaraciones">0</span>
+                </div>
+
+                <div class="pendiente-card">
+                    <div class="pendiente-info">
+                        <div class="pendiente-icono">📁</div>
+                        <div>
+                            <h4>Documentos disponibles</h4>
+                            <p>Cargados en tu repositorio</p>
+                        </div>
+                    </div>
+                    <span class="pendiente-valor" id="pendienteDocumentos">0</span>
+                </div>
+
+                <div class="pendiente-card">
+                    <div class="pendiente-info">
+                        <div class="pendiente-icono">⏳</div>
+                        <div>
+                            <h4>Próximo vencimiento</h4>
+                            <p>Fecha límite SAT</p>
+                        </div>
+                    </div>
+                    <span class="pendiente-valor pendiente-valor-fecha" id="proximoVencimiento">—</span>
+                </div>
+
+                <div class="pendiente-card">
+                    <div class="pendiente-info">
+                        <div class="pendiente-icono">🔄</div>
+                        <div>
+                            <h4>Última actualización</h4>
+                            <p>Datos de este panel</p>
+                        </div>
+                    </div>
+                    <span class="pendiente-valor pendiente-valor-fecha" id="ultimaActualizacion">—</span>
+                </div>
+
+            </section>
+
+            <!-- Listado de clientes -->
+            <div class="seccion-encabezado">
+                <div>
+                    <h2 class="seccion-titulo">Tus clientes</h2>
+                    <p class="seccion-subtitulo">Selecciona un cliente para ver sus declaraciones y documentos</p>
+                </div>
+            </div>
+
+            <section id="estadoCarga" class="estado-carga">
+                <span class="spinner" aria-hidden="true"></span>
+                Cargando tus clientes...
+            </section>
+
+            <section id="clientesGrid" class="clientes-grid"></section>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/dashboard.js"></script>
+
+</body>
+</html>

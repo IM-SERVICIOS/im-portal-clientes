@@ -1,5 +1,6 @@
 /* =====================================================
    Declaraciones - Heatmap de cumplimiento
+   Requiere css/tokens.css (cargado vía dashboard.css)
    ===================================================== */
 
 :root {
@@ -12,22 +13,29 @@
 .volver-link {
   display: inline-block;
   margin-bottom: 16px;
-  color: var(--texto-secundario);
+  color: var(--ink-500);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13.5px;
+  font-weight: 500;
 }
 
 .volver-link:hover {
-  color: var(--azul-marca);
+  color: var(--verde-700);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .badge-cumplimiento {
   background: var(--verde);
   color: #fff;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
-  padding: 8px 16px;
-  border-radius: 999px;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
   white-space: nowrap;
 }
 
@@ -42,43 +50,45 @@
 /* Filtros (modo general) */
 
 .filtros-card {
-  background: var(--tarjeta, #fff);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--r-lg);
   padding: 16px 20px;
   display: flex;
   gap: 24px;
   flex-wrap: wrap;
   margin-bottom: 20px;
+  box-shadow: var(--shadow-xs);
 }
 
 .filtro-campo {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: var(--texto-secundario);
+  color: var(--ink-500);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
 
 .filtro-campo select {
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 400;
+  font-size: 13.5px;
+  font-weight: 500;
   text-transform: none;
-  color: var(--texto-principal);
-  padding: 8px 10px;
-  border: 1px solid var(--borde);
-  border-radius: 8px;
-  background: #fff;
+  letter-spacing: normal;
+  color: var(--ink-900);
+  padding: 8.5px 12px;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--r-md);
+  background: var(--paper);
   min-width: 180px;
 }
 
 .tabla-declaraciones .estado-vacio {
   text-align: center;
-  color: var(--texto-secundario);
+  color: var(--ink-500);
   padding: 24px;
 }
 
@@ -86,18 +96,20 @@
 
 .heatmap-card,
 .tabla-card {
-  background: var(--tarjeta, #fff);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
+  background: var(--paper);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--r-lg);
   padding: 24px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-xs);
   margin-bottom: 24px;
 }
 
 .heatmap-titulo {
   margin: 0 0 18px;
-  font-size: 16px;
-  color: var(--texto-principal);
+  font-size: 15.5px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--ink-900);
 }
 
 /* Grid del heatmap */
@@ -111,20 +123,21 @@
 
 .heatmap-mes-header {
   text-align: center;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: var(--texto-secundario);
+  color: var(--ink-500);
 }
 
 .heatmap-anio-label {
   font-weight: 700;
-  font-size: 14px;
-  color: var(--texto-principal);
+  font-size: 13.5px;
+  font-family: var(--font-mono);
+  color: var(--ink-900);
 }
 
 .heatmap-celda {
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--gris-celda);
   transition: transform 0.1s ease;
 }
@@ -133,17 +146,9 @@
   transform: scale(1.08);
 }
 
-.heatmap-celda.verde {
-  background: var(--verde);
-}
-
-.heatmap-celda.amarillo {
-  background: var(--amarillo);
-}
-
-.heatmap-celda.gris {
-  background: var(--gris-celda);
-}
+.heatmap-celda.verde { background: var(--verde); }
+.heatmap-celda.amarillo { background: var(--amarillo); }
+.heatmap-celda.gris { background: var(--gris-celda); }
 
 /* Leyenda */
 
@@ -151,8 +156,8 @@
   display: flex;
   gap: 24px;
   margin-top: 18px;
-  font-size: 13px;
-  color: var(--texto-secundario);
+  font-size: 12.5px;
+  color: var(--ink-500);
   flex-wrap: wrap;
 }
 
@@ -178,33 +183,34 @@
 .tabla-declaraciones {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .tabla-declaraciones th {
   text-align: left;
   padding: 10px 12px;
-  color: var(--texto-secundario);
-  font-size: 12px;
+  color: var(--ink-500);
+  font-size: 11px;
   text-transform: uppercase;
-  border-bottom: 1px solid var(--borde);
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--ink-200);
 }
 
 .tabla-declaraciones td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--borde);
+  border-bottom: 1px solid var(--ink-100);
 }
 
 .tabla-declaraciones tbody tr:hover {
-  background: var(--fondo);
+  background: var(--verde-50);
 }
 
 .estatus-pill {
   display: inline-block;
   padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: var(--r-pill);
+  font-size: 11.5px;
+  font-weight: 700;
 }
 
 .estatus-pill.verde {

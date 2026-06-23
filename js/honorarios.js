@@ -1,261 +1,186 @@
-// =====================================================
-// Honorarios - Portal de Clientes IM Servicios Contables
-// =====================================================
-// Columnas reales de la tabla "honorarios":
-//   cliente_id, concepto, monto, fuera_presupuesto,
-//   fecha_remision, estatus_pago
-// (no existen "ejercicio", "mes", "importe" ni "fecha_pago")
-// =====================================================
+/* =====================================================
+   Honorarios — refuerzo visual de estado de pago
+   Dashboard | IM Servicios Contables
 
-const nombreUsuarioEl = document.getElementById('nombreUsuario');
-const rolUsuarioEl = document.getElementById('rolUsuario');
-const estadoCargaEl = document.getElementById('estadoCarga');
-const contenidoEl = document.getElementById('contenidoHonorarios');
+   No modifica honorarios.js: solo observa el DOM (los KPIs
+   #kpiPorCobrar y #kpiClientesAdeudo que honorarios.js ya
+   calcula y pinta) y agrega una capa visual encima.
+   No toca Supabase ni la lógica de carga de datos.
 
-const kpiTotalEl = document.getElementById('kpiTotalHonorarios');
-const kpiCobradoEl = document.getElementById('kpiCobrado');
-const kpiPorCobrarEl = document.getElementById('kpiPorCobrar');
-const kpiClientesAdeudoEl = document.getElementById('kpiClientesAdeudo');
+   Se muestra cada vez que se entra a la página (sin
+   sessionStorage), tal como fue solicitado.
+   ===================================================== */
 
-const filtroClienteEl = document.getElementById('filtroCliente');
-const filtroEstatusEl = document.getElementById('filtroEstatus');
-const tablaBodyEl = document.getElementById('tablaHonorariosBody');
+(function () {
+  'use strict';
 
-// Estado en memoria: se carga una sola vez y los filtros solo
-// vuelven a pintar la tabla, sin volver a consultar Supabase.
-let honorariosCargados = [];
-let clientesMapa = {}; // { id: nombre }
+  var DURACION_CELEBRACION_MS = 3400;
+  var DURACION_RECORDATORIO_MS = 2800;
 
-function formatearMoneda(numero) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numero || 0);
-}
+  var reducidoMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var esMovil = window.innerWidth < 640;
+  var yaEvaluado = false; // evita disparar dos veces si el observer detecta varios cambios
 
-function formatearFecha(fecha) {
-  if (!fecha) return '—';
-  const d = new Date(fecha);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+  // ---------- Utilidades ----------
 
-// "Pagado" se compara sin importar mayúsculas/espacios: tu dato real
-// usa "Pendiente" para lo no pagado, así que cualquier valor que no
-// sea exactamente "pagado" (ignorando mayúsculas) se trata como
-// pendiente de cobro.
-function esPagado(estatusPago) {
-  return typeof estatusPago === 'string' && estatusPago.trim().toLowerCase() === 'pagado';
-}
-
-function esAdmin(rol) {
-  return typeof rol === 'string' && rol.trim().toLowerCase().startsWith('admin');
-}
-
-function mostrarError(texto) {
-  estadoCargaEl.textContent = texto;
-  estadoCargaEl.classList.add('estado-error');
-}
-
-function poblarFiltroClientes(clientes) {
-  clientes
-    .slice()
-    .sort((a, b) => a.nombre.localeCompare(b.nombre))
-    .forEach(c => {
-      const opcion = document.createElement('option');
-      opcion.value = String(c.id);
-      opcion.textContent = c.nombre;
-      filtroClienteEl.appendChild(opcion);
-    });
-}
-
-function calcularKpis(honorarios) {
-  const total = honorarios.length;
-
-  const cobrado = honorarios
-    .filter(h => esPagado(h.estatus_pago))
-    .reduce((suma, h) => suma + Number(h.monto || 0), 0);
-
-  const pendientes = honorarios.filter(h => !esPagado(h.estatus_pago));
-  const porCobrar = pendientes.reduce((suma, h) => suma + Number(h.monto || 0), 0);
-
-  const clientesConAdeudo = new Set(pendientes.map(h => h.cliente_id)).size;
-
-  kpiTotalEl.textContent = total;
-  kpiCobradoEl.textContent = formatearMoneda(cobrado);
-  kpiPorCobrarEl.textContent = formatearMoneda(porCobrar);
-  kpiClientesAdeudoEl.textContent = clientesConAdeudo;
-}
-
-function renderTabla() {
-  const clienteSeleccionado = filtroClienteEl.value;
-  const estatusSeleccionado = filtroEstatusEl.value;
-
-  let filtrados = honorariosCargados;
-
-  if (clienteSeleccionado !== 'todos') {
-    filtrados = filtrados.filter(h => String(h.cliente_id) === clienteSeleccionado);
+  function parsearMontoMXN(texto) {
+    // "$1,234.56" -> 1234.56 ; soporta también "$0.00"
+    if (typeof texto !== 'string') return NaN;
+    var limpio = texto.replace(/[^0-9.,-]/g, '').replace(/,/g, '');
+    var valor = parseFloat(limpio);
+    return Number.isNaN(valor) ? NaN : valor;
   }
 
-  if (estatusSeleccionado === 'pagado') {
-    filtrados = filtrados.filter(h => esPagado(h.estatus_pago));
-  } else if (estatusSeleccionado === 'pendiente') {
-    filtrados = filtrados.filter(h => !esPagado(h.estatus_pago));
+  function crearOverlayBase(id, claseExtra) {
+    var existente = document.getElementById(id);
+    if (existente) existente.remove();
+    var overlay = document.createElement('div');
+    overlay.id = id;
+    overlay.className = 'hn-overlay ' + (claseExtra || '');
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    document.body.appendChild(overlay);
+    return overlay;
   }
 
-  // Más reciente primero, según la fecha en que se remitió el cargo
-  filtrados = [...filtrados].sort((a, b) => {
-    const fechaA = a.fecha_remision ? new Date(a.fecha_remision).getTime() : 0;
-    const fechaB = b.fecha_remision ? new Date(b.fecha_remision).getTime() : 0;
-    return fechaB - fechaA;
-  });
-
-  tablaBodyEl.innerHTML = '';
-
-  if (filtrados.length === 0) {
-    const fila = document.createElement('tr');
-    const celda = document.createElement('td');
-    celda.colSpan = 6;
-    celda.className = 'estado-vacio';
-    celda.textContent = 'No hay honorarios que coincidan con este filtro.';
-    fila.appendChild(celda);
-    tablaBodyEl.appendChild(fila);
-    return;
+  function cerrarOverlay(overlay, despuesMs) {
+    setTimeout(function () {
+      overlay.classList.add('hn-oculto');
+      setTimeout(function () { overlay.remove(); }, reducidoMovimiento ? 0 : 450);
+    }, despuesMs);
   }
 
-  filtrados.forEach(h => {
-    const fila = document.createElement('tr');
+  // ---------- Confeti de celebración ----------
 
-    const tdCliente = document.createElement('td');
-    tdCliente.textContent = clientesMapa[h.cliente_id] || `Cliente ${h.cliente_id}`;
+  function lanzarConfeti(contenedor) {
+    if (reducidoMovimiento) return;
+    var colores = ['#22C55E', '#15803D', '#ffffff', '#5CC8F2'];
+    var total = esMovil ? 36 : 70;
+    for (var i = 0; i < total; i++) {
+      var pieza = document.createElement('span');
+      pieza.className = 'hn-confeti-pieza';
+      pieza.style.left = (Math.random() * 100) + '%';
+      pieza.style.background = colores[i % colores.length];
+      pieza.style.animationDuration = (1.7 + Math.random() * 1.3) + 's';
+      pieza.style.animationDelay = (Math.random() * 0.5) + 's';
+      contenedor.appendChild(pieza);
+    }
+  }
 
-    const tdConcepto = document.createElement('td');
-    tdConcepto.textContent = h.concepto || '—';
+  // ---------- Caso positivo: 100% pagado ----------
 
-    const tdMonto = document.createElement('td');
-    tdMonto.textContent = formatearMoneda(h.monto);
+  function mostrarCelebracion() {
+    var overlay = crearOverlayBase('hnOverlayExito', 'hn-overlay-exito');
 
-    const tdTipo = document.createElement('td');
-    if (h.fuera_presupuesto) {
-      const tipoPill = document.createElement('span');
-      tipoPill.className = 'estatus-pill fuera-presupuesto';
-      tipoPill.textContent = 'Fuera de presupuesto';
-      tdTipo.appendChild(tipoPill);
+    overlay.innerHTML =
+      '<div class="hn-confeti-capa" id="hnConfetiCapa"></div>' +
+      '<div class="hn-tarjeta hn-tarjeta-exito">' +
+        '<div class="hn-icono-circulo hn-icono-exito">✅</div>' +
+        '<h3 class="hn-titulo">¡Estás al día!</h3>' +
+        '<p class="hn-texto">No tienes honorarios pendientes de pago.</p>' +
+        '<p class="hn-subtexto">Gracias por tu puntualidad.</p>' +
+      '</div>';
+
+    lanzarConfeti(document.getElementById('hnConfetiCapa'));
+    cerrarOverlay(overlay, reducidoMovimiento ? 0 : DURACION_CELEBRACION_MS);
+  }
+
+  // ---------- Caso con adeudo: recordatorio ----------
+
+  function mostrarRecordatorio(montoPendiente, clientesConAdeudo) {
+    var overlay = crearOverlayBase('hnOverlayAviso', 'hn-overlay-aviso');
+
+    var textoClientes = '';
+    if (clientesConAdeudo === 1) {
+      textoClientes = 'Tienes 1 cliente con adeudo pendiente.';
+    } else if (clientesConAdeudo > 1) {
+      textoClientes = 'Tienes ' + clientesConAdeudo + ' clientes con adeudo pendiente.';
+    }
+
+    overlay.innerHTML =
+      '<div class="hn-tarjeta hn-tarjeta-aviso">' +
+        '<div class="hn-icono-circulo hn-icono-aviso">⏰</div>' +
+        '<h3 class="hn-titulo">Tienes un saldo pendiente</h3>' +
+        '<p class="hn-monto">' + montoPendiente + '</p>' +
+        (textoClientes ? '<p class="hn-subtexto">' + textoClientes + '</p>' : '') +
+      '</div>';
+
+    cerrarOverlay(overlay, reducidoMovimiento ? 0 : DURACION_RECORDATORIO_MS);
+  }
+
+  // ---------- Evaluación del estado ----------
+
+  function evaluarEstado() {
+    if (yaEvaluado) return;
+
+    var kpiPorCobrarEl = document.getElementById('kpiPorCobrar');
+    var kpiClientesAdeudoEl = document.getElementById('kpiClientesAdeudo');
+    if (!kpiPorCobrarEl) return;
+
+    var textoMonto = kpiPorCobrarEl.textContent.trim();
+    var monto = parsearMontoMXN(textoMonto);
+
+    // Mientras honorarios.js no haya pintado el valor real, el KPI
+    // sigue en "0" (su valor inicial en el HTML) o vacío: esperamos
+    // a que el contenido visible ya esté desplegado para no disparar
+    // la animación antes de tiempo.
+    var contenidoEl = document.getElementById('contenidoHonorarios');
+    if (!contenidoEl || contenidoEl.style.display === 'none') return;
+
+    if (Number.isNaN(monto)) return;
+
+    yaEvaluado = true;
+
+    var clientesAdeudo = 0;
+    if (kpiClientesAdeudoEl) {
+      clientesAdeudo = parseInt(kpiClientesAdeudoEl.textContent.trim(), 10) || 0;
+    }
+
+    if (monto <= 0) {
+      mostrarCelebracion();
     } else {
-      tdTipo.textContent = '—';
+      mostrarRecordatorio(textoMonto, clientesAdeudo);
     }
-
-    const tdEstatus = document.createElement('td');
-    const pill = document.createElement('span');
-    const pagado = esPagado(h.estatus_pago);
-    pill.className = `estatus-pill ${pagado ? 'pagado' : 'falta-pago'}`;
-    pill.textContent = h.estatus_pago || 'Sin estatus';
-    tdEstatus.appendChild(pill);
-
-    const tdFecha = document.createElement('td');
-    tdFecha.textContent = formatearFecha(h.fecha_remision);
-
-    fila.append(tdCliente, tdConcepto, tdMonto, tdTipo, tdEstatus, tdFecha);
-    tablaBodyEl.appendChild(fila);
-  });
-}
-
-async function cargarHonorarios() {
-  // 1. Confirmar sesión activa
-  const { data: sesionData } = await supabaseClient.auth.getSession();
-  const session = sesionData.session;
-
-  if (!session) {
-    window.location.href = 'index.html';
-    return;
   }
 
-  // 2. Obtener usuario y rol
-  const { data: usuario, error: errorUsuario } = await supabaseClient
-    .from('usuarios')
-    .select('id, email, rol')
-    .eq('auth_user_id', session.user.id)
-    .single();
+  // ---------- Arranque: observar hasta que honorarios.js pinte los KPIs ----------
 
-  if (errorUsuario || !usuario) {
-    mostrarError('No se encontró tu cuenta en el sistema. Contacta al administrador.');
-    return;
-  }
+  function iniciar() {
+    var contenidoEl = document.getElementById('contenidoHonorarios');
+    var estadoCargaEl = document.getElementById('estadoCarga');
+    if (!contenidoEl) return;
 
-  nombreUsuarioEl.textContent = usuario.email;
-  rolUsuarioEl.textContent = usuario.rol;
-
-  // 3. Obtener clientes permitidos (mismo patrón que dashboard.js)
-  let clientes = [];
-
-  if (esAdmin(usuario.rol)) {
-    const { data, error } = await supabaseClient
-      .from('clientes')
-      .select('id, nombre')
-      .eq('activo', true);
-
-    if (error) {
-      mostrarError(`No se pudieron cargar tus clientes: ${error.message || 'error desconocido'}`);
+    // Si ya está visible al cargar este script (carga muy rápida), evalúa directo.
+    if (contenidoEl.style.display !== 'none') {
+      evaluarEstado();
       return;
     }
-    clientes = data;
+
+    // Observa el atributo "style" de #contenidoHonorarios (cuando
+    // honorarios.js hace contenidoEl.style.display = 'block') y de
+    // #estadoCarga (cuando se oculta), ambos ya usados por la lógica
+    // existente para indicar "datos listos".
+    var observador = new MutationObserver(function () {
+      if (contenidoEl.style.display !== 'none') {
+        observador.disconnect();
+        // pequeño margen para asegurar que calcularKpis() ya corrió
+        setTimeout(evaluarEstado, 50);
+      }
+    });
+
+    observador.observe(contenidoEl, { attributes: true, attributeFilter: ['style'] });
+    if (estadoCargaEl) {
+      observador.observe(estadoCargaEl, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    // Margen de seguridad por si la carga falla silenciosamente o
+    // tarda demasiado: dejamos de esperar tras 8s sin disparar nada.
+    setTimeout(function () { observador.disconnect(); }, 8000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciar);
   } else {
-    const { data, error } = await supabaseClient
-      .from('vw_usuarios_clientes')
-      .select('cliente_id, cliente_nombre')
-      .eq('usuario_id', usuario.id);
-
-    if (error) {
-      mostrarError(`No se pudieron cargar tus clientes asignados: ${error.message || 'error desconocido'}`);
-      return;
-    }
-    clientes = (data || [])
-      .filter(c => c.cliente_id !== null)
-      .map(c => ({ id: c.cliente_id, nombre: c.cliente_nombre }));
+    iniciar();
   }
-
-  if (clientes.length === 0) {
-    estadoCargaEl.style.display = 'none';
-    contenidoEl.style.display = 'block';
-    calcularKpis([]);
-    renderTabla();
-    return;
-  }
-
-  clientesMapa = {};
-  clientes.forEach(c => { clientesMapa[c.id] = c.nombre; });
-  poblarFiltroClientes(clientes);
-
-  // 4. Obtener honorarios de esos clientes (columnas reales)
-  const idsClientes = clientes.map(c => c.id);
-
-  const { data: honorarios, error: errorHonorarios } = await supabaseClient
-    .from('honorarios')
-    .select('cliente_id, concepto, monto, fuera_presupuesto, fecha_remision, estatus_pago')
-    .in('cliente_id', idsClientes);
-
-  if (errorHonorarios) {
-    console.error('Error cargando honorarios:', errorHonorarios);
-    mostrarError(`No se pudieron cargar los honorarios: ${errorHonorarios.message || 'error desconocido'}`);
-    return;
-  }
-
-  honorariosCargados = honorarios || [];
-
-  // 5. Mostrar resultado
-  estadoCargaEl.style.display = 'none';
-  contenidoEl.style.display = 'block';
-
-  calcularKpis(honorariosCargados);
-  renderTabla();
-}
-
-filtroClienteEl.addEventListener('change', renderTabla);
-filtroEstatusEl.addEventListener('change', renderTabla);
-
-document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
-  await supabaseClient.auth.signOut();
-  window.location.href = 'index.html';
-});
-
-cargarHonorarios().catch((err) => {
-  console.error(err);
-  mostrarError(`Ocurrió un error al cargar los honorarios: ${err.message || 'error desconocido'}`);
-});
+})();

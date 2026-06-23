@@ -1,0 +1,284 @@
+/* =====================================================
+   Bienvenida — experiencia premium de inicio de sesión
+   Dashboard | IM Servicios Contables
+   Archivo independiente: no modifica dashboard.css ni
+   ninguna clase/ID usada por la lógica existente.
+   ===================================================== */
+
+/* ---------- Overlay de transición ---------- */
+
+#bvOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5CC8F2 0%, #2C6E85 100%);
+  transition: opacity .5s ease, filter .5s ease;
+}
+
+#bvOverlay.bv-oculto {
+  opacity: 0;
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+#bvOverlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,255,255,0.18), transparent 45%),
+    radial-gradient(circle at 85% 78%, rgba(255,255,255,0.12), transparent 50%);
+}
+
+.bv-particulas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bv-particula {
+  position: absolute;
+  bottom: -10px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  animation-name: bvFlotar;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes bvFlotar {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  12%  { opacity: .75; }
+  88%  { opacity: .35; }
+  100% { transform: translateY(-115vh) translateX(var(--bv-drift, 16px)); opacity: 0; }
+}
+
+.bv-contenido {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+  padding: 0 24px;
+  max-width: 360px;
+}
+
+/* Logo — único elemento de "firma": anillo de resplandor pulsante */
+.bv-logo-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.16);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+  opacity: 0;
+  transform: scale(.86) translateY(6px);
+  animation: bvLogoEntrada .9s ease forwards .15s, bvLogoFlotar 3.4s ease-in-out infinite 1.05s;
+}
+
+.bv-logo-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 28px;
+  background: radial-gradient(circle, rgba(255,255,255,0.35), transparent 70%);
+  opacity: 0;
+  animation: bvResplandor 3.4s ease-in-out infinite 1.05s;
+  z-index: -1;
+}
+
+.bv-logo-wrap img { width: 40px; height: 40px; object-fit: contain; filter: brightness(0) invert(1); }
+
+.bv-logo-fallback {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+}
+
+@keyframes bvLogoEntrada { to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes bvLogoFlotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes bvResplandor { 0%, 100% { opacity: .25; } 50% { opacity: .6; } }
+
+/* Saludo */
+.bv-saludo {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: clamp(20px, 5vw, 27px);
+  font-weight: 700;
+  margin: 0 0 9px;
+  opacity: 0;
+  animation: bvFadeUpContenedor .1s ease forwards .5s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@keyframes bvFadeUpContenedor { to { opacity: 1; } }
+
+.bv-letra {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: bvLetraFade .45s ease forwards;
+}
+
+@keyframes bvLetraFade { to { opacity: 1; transform: translateY(0); } }
+
+.bv-subtexto {
+  font-size: 14px;
+  margin: 0;
+  color: rgba(255,255,255,0.88);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: bvFadeUp .6s ease forwards .85s;
+}
+
+.bv-subtexto.bv-linea2 {
+  margin-top: 4px;
+  color: rgba(255,255,255,0.7);
+  animation-delay: 1.05s;
+}
+
+@keyframes bvFadeUp { to { opacity: 1; transform: translateY(0); } }
+
+/* Indicador de carga */
+.bv-progreso {
+  width: 150px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.25);
+  margin-top: 24px;
+  overflow: hidden;
+  opacity: 0;
+  animation: bvFadeUp .5s ease forwards 1.3s;
+}
+
+.bv-progreso-barra {
+  height: 100%;
+  width: 30%;
+  border-radius: 999px;
+  background: #fff;
+  animation: bvProgreso 1.3s ease-in-out infinite;
+}
+
+@keyframes bvProgreso {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(330%); }
+}
+
+/* ---------- Confeti (solo primer acceso) ---------- */
+#bvConfeti {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bv-confeti-pieza {
+  position: absolute;
+  top: -10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  animation-name: bvCaer;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes bvCaer { to { transform: translateY(108vh) rotate(360deg); opacity: 0; } }
+
+/* ---------- Revelado escalonado del dashboard ---------- */
+[data-bv-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+[data-bv-reveal].bv-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .35s ease, transform .35s ease;
+}
+
+/* ---------- Tarjeta de bienvenida ---------- */
+.bv-tarjeta {
+  position: relative;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: var(--r-lg, 14px);
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.07);
+  animation: bvTarjetaFlotar 5s ease-in-out infinite;
+}
+
+@keyframes bvTarjetaFlotar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+.bv-tarjeta-saludo { font-family: var(--font-display, 'Sora', sans-serif); font-weight: 700; font-size: 14.5px; margin: 0; color: var(--ink-900, #1f2937); }
+.bv-tarjeta-fecha { font-size: 12px; color: var(--ink-500, #6b7280); margin: 2px 0 0; text-transform: capitalize; }
+.bv-tarjeta-frase { font-size: 12.5px; color: var(--verde-700, #0a5654); font-weight: 600; text-align: right; min-width: 200px; transition: opacity .35s ease; }
+
+/* ---------- Fondo animado sutil del dashboard ---------- */
+.bv-fondo-dashboard {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: .55;
+  will-change: transform;
+}
+
+.bv-fondo-dashboard .bv-particula {
+  background: rgba(13, 110, 107, 0.18);
+}
+
+.bv-linea {
+  position: absolute;
+  top: -5%;
+  width: 1px;
+  height: 110%;
+  background: linear-gradient(to bottom, transparent, rgba(13,110,107,0.08), transparent);
+}
+
+@media (max-width: 720px) {
+  .bv-tarjeta { flex-direction: column; align-items: flex-start; }
+  .bv-tarjeta-frase { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #bvOverlay,
+  .bv-logo-wrap, .bv-logo-wrap::after,
+  .bv-saludo, .bv-letra, .bv-subtexto, .bv-progreso, .bv-progreso-barra,
+  [data-bv-reveal], .bv-tarjeta, .bv-particula, .bv-confeti-pieza {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .bv-fondo-dashboard { display: none; }
+}

@@ -73,19 +73,23 @@ function formatearMoneda(numero) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numero || 0);
 }
 
-// La tabla "declaraciones" aún no tiene una columna dedicada al monto
-// realmente pagado, así que mientras se agrega, lo aproximamos sumando
-// ISR + IVA. Positivo = hay que pagar (color normal). Negativo = saldo
-// a favor (se pinta en verde).
-function calcularMontoDeclaracion(d) {
-  return (Number(d.isr) || 0) + (Number(d.iva) || 0);
-}
-
+// monto_pagado = lo que realmente se determinó/pagó al SAT vía línea de
+// captura (columna real en Supabase, no un cálculo). Cuando es 0,
+// distinguimos si fue "declarada en ceros" o "saldo a favor" mirando el
+// signo de isr/iva, para mantener el color verde en los casos a favor.
 function crearCeldaMonto(d) {
-  const monto = calcularMontoDeclaracion(d);
+  const monto = Number(d.monto_pagado) || 0;
+  const hayPagoDirecto = monto > 0;
+  const haySaldoAFavor = (Number(d.isr) || 0) < 0 || (Number(d.iva) || 0) < 0;
+
   const celda = document.createElement('td');
   celda.textContent = formatearMoneda(monto);
-  celda.classList.add('monto-declaracion', monto < 0 ? 'a-favor' : 'a-pagar');
+
+  let clase = 'en-ceros';
+  if (hayPagoDirecto) clase = 'a-pagar';
+  else if (haySaldoAFavor) clase = 'a-favor';
+
+  celda.classList.add('monto-declaracion', clase);
   return celda;
 }
 
@@ -247,7 +251,7 @@ async function cargarModoGeneral(usuario) {
 
   const { data: declaraciones, error: errorDeclaraciones } = await supabaseClient
     .from('declaraciones')
-    .select('cliente_id, ejercicio, mes, tipo_declaracion, isr, iva, estatus_sat')
+    .select('cliente_id, ejercicio, mes, tipo_declaracion, isr, iva, monto_pagado, estatus_sat')
     .in('cliente_id', idsClientes);
 
   if (errorDeclaraciones) {
@@ -415,7 +419,7 @@ async function cargarModoCliente(clienteId) {
 
   const { data: declaraciones, error: errorDeclaraciones } = await supabaseClient
     .from('declaraciones')
-    .select('ejercicio, mes, tipo_declaracion, isr, iva, estatus_sat')
+    .select('ejercicio, mes, tipo_declaracion, isr, iva, monto_pagado, estatus_sat')
     .eq('cliente_id', clienteId);
 
   if (errorDeclaraciones) {

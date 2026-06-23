@@ -460,45 +460,63 @@ function renderHistorial() {
 
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
+
   modalTituloEl.textContent    = doc.nombre || 'Documento';
   modalSubtituloEl.textContent = `${formatearFecha(doc.fecha)} · ${doc.tipo || 'PDF'}`;
-  modalDescargarEl.href        = '#';
   modalEl.classList.add('abierto');
 
+  // Ocultar iframe completamente
+  modalIframeEl.style.display = 'none';
   modalIframeEl.removeAttribute('src');
-  modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p>Cargando documento…</p></body>`;
+  modalIframeEl.removeAttribute('srcdoc');
+
+  // Limpiar cuerpo del modal y mostrar botones
+  const cuerpo = modalIframeEl.parentElement;
+  cuerpo.querySelectorAll('.modal-doc-acciones').forEach(el => el.remove());
 
   if (!doc.url_archivo) {
-    modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p style="text-align:center;max-width:320px;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p></body>`;
+    const aviso = document.createElement('div');
+    aviso.className = 'modal-doc-acciones';
+    aviso.innerHTML = `<p style="color:#647069;text-align:center;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p>`;
+    cuerpo.appendChild(aviso);
+    modalDescargarEl.style.display = 'none';
     registrarHistorial(doc);
     return;
   }
 
   const url = doc.url_archivo;
 
-  // El iframe no puede mostrar PDFs de Supabase por CORS.
-  // Mostramos mensaje y abrimos en nueva pestaña automáticamente.
-  modalIframeEl.removeAttribute('src');
-  modalIframeEl.srcdoc = `<body style="margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;gap:16px;">
-    <p style="text-align:center;max-width:320px;font-size:15px;">El documento se abrió en una nueva pestaña.</p>
-    <a href="${url}" target="_blank" style="background:#0D3327;color:#fff;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Abrir documento ↗</a>
-  </body>`;
+  // Mostrar botón abrir y configurar descargar
+  const acciones = document.createElement('div');
+  acciones.className = 'modal-doc-acciones';
+  acciones.innerHTML = `
+    <p style="color:#647069;font-size:14px;text-align:center;margin-bottom:20px;">
+      Los PDFs se abren en una nueva pestaña para mayor compatibilidad.
+    </p>
+    <a href="${escaparHtml(url)}" target="_blank" rel="noopener"
+       style="display:inline-block;background:#0D3327;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:12px;">
+      📄 Abrir PDF ↗
+    </a>`;
+  cuerpo.appendChild(acciones);
 
-  // Abrir PDF en nueva pestaña
-  window.open(url, '_blank');
-
-  // Botón descargar del modal
-  modalDescargarEl.href     = url;
-  modalDescargarEl.download = doc.nombre || 'documento.pdf';
-  modalDescargarEl.target   = '_blank';
+  modalDescargarEl.style.display = '';
+  modalDescargarEl.href          = url;
+  modalDescargarEl.download      = doc.nombre || 'documento.pdf';
+  modalDescargarEl.target        = '_blank';
+  modalDescargarEl.rel           = 'noopener';
 
   registrarHistorial(doc);
 }
 
 function cerrarVistaPrevia() {
   modalEl.classList.remove('abierto');
+  modalIframeEl.style.display = 'none';
   modalIframeEl.removeAttribute('src');
-  modalIframeEl.srcdoc = '';
+  modalIframeEl.removeAttribute('srcdoc');
+  const cuerpo = modalIframeEl.parentElement;
+  cuerpo.querySelectorAll('.modal-doc-acciones').forEach(el => el.remove());
+  modalDescargarEl.style.display = '';
+  modalDescargarEl.href = '#';
 }
 
 async function descargarDocumento(doc) {

@@ -2,21 +2,19 @@
 // Documentos - Portal de Clientes IM Servicios Contables
 // =====================================================
 // COLUMNAS REALES DE LA TABLA "documentos":
-//   identificacion   → PK
-//   id_cliente       → FK a clientes
-//   tipo_documento   → categoría del documento
-//   nombre_archivo   → nombre visible
-//   url_archivo      → RUTA en Supabase Storage (bucket privado)
-//
-// Columnas adicionales a agregar con ALTER TABLE:
-//   categoria, subcategoria, fecha, estatus, observaciones,
+//   id               → PK (bigint)
+//   cliente_id       → FK a clientes (bigint)
+//   tipo_documento   → tipo de archivo (varchar)
+//   nombre_archivo   → nombre visible (varchar)
+//   url_archivo      → URL pública completa en Supabase Storage
+//   fecha_subida     → timestamp de carga
+//   categoria        → id de categoría (ej. 'presupuestos', 'acuses')
+//   subcategoria, nombre, fecha, tipo, estatus, observaciones,
 //   subido_por, linea_captura, importe, servicio, vigencia,
 //   responsable, metodo_pago, referencia, monto, impuesto
 //
-// BUCKET PRIVADO: url_archivo guarda la RUTA del archivo
-// (ej. "123/acuses/1750000000-acuse.pdf"), NO una URL pública.
-// Se genera una URL firmada (60 min) en tiempo real al
-// abrir la vista previa o descargar.
+// BUCKET PÚBLICO: url_archivo ya es la URL completa de acceso.
+// No se requiere generar URL firmada.
 // =====================================================
 
 const BUCKET_DOCUMENTOS = 'documentos';
@@ -144,8 +142,8 @@ function mostrarToast(texto) {
 function normalizarFila(fila) {
   return {
     // Campos existentes en la tabla original
-    id:           fila.identificacion ?? fila.id,
-    id_cliente:   fila.id_cliente     ?? fila.cliente_id,
+    id:           fila.id,
+    id_cliente:   fila.cliente_id,
     categoria:    fila.categoria      ?? fila.tipo_documento ?? null,
     nombre:       fila.nombre_archivo ?? fila.nombre         ?? null,
     url_archivo:  fila.url_archivo    ?? null,
@@ -169,16 +167,13 @@ function normalizarFila(fila) {
 }
 
 // =====================================================
-// URL firmada para bucket PRIVADO
+// URL del archivo — bucket PÚBLICO (url_archivo ya es URL completa)
 // =====================================================
 async function obtenerUrlFirmada(ruta) {
+  // El bucket es público: url_archivo ya contiene la URL completa de descarga.
+  // No se necesita generar URL firmada.
   if (!ruta || ruta === '#') return null;
-  const { data, error } = await supabaseClient
-    .storage
-    .from(BUCKET_DOCUMENTOS)
-    .createSignedUrl(ruta, SIGNED_URL_EXPIRY);
-  if (error) { console.error('Error generando URL firmada:', error); return null; }
-  return data.signedUrl;
+  return ruta;
 }
 
 
@@ -247,7 +242,7 @@ async function cargarDocumentosDeCliente(clienteId) {
   const { data, error } = await supabaseClient
     .from('documentos')
     .select('*')
-    .eq('id_cliente', clienteId);
+    .eq('cliente_id', clienteId);
 
   estadoCargaDocumentosEl.style.display = 'none';
 

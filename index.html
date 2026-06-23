@@ -1,55 +1,796 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>Portal Clientes | IM Servicios Contables</title>
 
-<link rel="stylesheet" href="css/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 
+<link rel="stylesheet" href="css/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<style>
+/* ─── TOKENS ───────────────────────────────────────────── */
+:root {
+  --sky:       #5CC8F2;
+  --petrol:    #2C6E85;
+  --deep:      #1A4D61;
+  --ink:       #0D2F3F;
+  --white:     #FFFFFF;
+  --surface:   #F5F7FA;
+  --text-dark: #1C2B36;
+  --text-mid:  #4A6270;
+  --text-light:#7A96A3;
+  --border:    rgba(92,200,242,0.18);
+  --glass-bg:  rgba(255,255,255,0.72);
+  --glass-bg2: rgba(255,255,255,0.12);
+  --shadow-card: 0 24px 64px rgba(28,43,54,0.18), 0 4px 16px rgba(44,110,133,0.10);
+  --shadow-btn:  0 8px 24px rgba(44,110,133,0.38);
+  --radius-card: 22px;
+  --radius-input:14px;
+  --transition: 0.28s cubic-bezier(0.4,0,0.2,1);
+  --font-display: 'Poppins', sans-serif;
+  --font-body:    'Inter', sans-serif;
+}
+
+/* ─── RESET ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--ink);
+  min-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ─── LAYOUT ─────────────────────────────────────────────── */
+.page-shell {
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+}
+
+/* ─── LEFT PANEL ─────────────────────────────────────────── */
+.panel-left {
+  position: relative;
+  flex: 0 0 60%;
+  overflow: hidden;
+  background: linear-gradient(145deg, var(--ink) 0%, var(--deep) 40%, var(--petrol) 80%, #3d8fa8 100%);
+}
+
+/* Ambient orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.35;
+  animation: drift linear infinite;
+  will-change: transform;
+}
+.orb-1 { width:480px; height:480px; top:-120px; left:-100px; background: radial-gradient(circle, var(--sky) 0%, var(--petrol) 70%); animation-duration: 22s; }
+.orb-2 { width:320px; height:320px; bottom:-60px; right:-80px; background: radial-gradient(circle, #3ad0f5 0%, var(--deep) 70%); animation-duration: 18s; animation-delay:-9s; }
+.orb-3 { width:200px; height:200px; top:45%; left:35%; background: radial-gradient(circle, #a8e8f8 0%, transparent 70%); opacity:0.18; animation-duration:28s; animation-delay:-5s; }
+
+@keyframes drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(30px,-20px) scale(1.06); }
+  66%  { transform: translate(-20px,30px) scale(0.95); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+/* SVG canvas */
+.canvas-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-scene {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 56px 52px;
+  gap: 0;
+}
+
+.left-tagline {
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  animation: fadeUp 0.9s 0.4s both;
+}
+
+.left-headline {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.2vw, 42px);
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.18;
+  max-width: 420px;
+  animation: fadeUp 0.9s 0.6s both;
+}
+
+.left-headline em {
+  font-style: normal;
+  color: var(--sky);
+}
+
+.left-sub {
+  margin-top: 16px;
+  color: rgba(255,255,255,0.52);
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 340px;
+  animation: fadeUp 0.9s 0.8s both;
+}
+
+.stat-row {
+  display: flex;
+  gap: 32px;
+  margin-top: 40px;
+  animation: fadeUp 0.9s 1s both;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--sky);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Mini chart */
+.chart-card {
+  position: absolute;
+  top: 44px;
+  right: 48px;
+  background: var(--glass-bg2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 20px 24px 16px;
+  width: 220px;
+  animation: fadeDown 1s 1.2s both;
+  z-index: 3;
+}
+
+.chart-title {
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 60px;
+}
+
+.bar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(to top, var(--petrol), var(--sky));
+  opacity: 0.7;
+  animation: growBar 1.4s ease-out both;
+  transform-origin: bottom;
+}
+.bar:nth-child(1)  { height:35%; animation-delay:1.4s; }
+.bar:nth-child(2)  { height:55%; animation-delay:1.5s; }
+.bar:nth-child(3)  { height:42%; animation-delay:1.6s; }
+.bar:nth-child(4)  { height:70%; animation-delay:1.7s; }
+.bar:nth-child(5)  { height:60%; animation-delay:1.8s; }
+.bar:nth-child(6)  { height:88%; animation-delay:1.9s; }
+.bar:nth-child(7)  { height:75%; animation-delay:2.0s; }
+
+@keyframes growBar {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 0.7; }
+}
+
+.chart-legend {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--sky);
+  font-weight: 600;
+}
+
+/* Floating badge */
+.badge-float {
+  position: absolute;
+  bottom: 120px;
+  right: 52px;
+  background: var(--glass-bg2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(92,200,242,0.2);
+  border-radius: 50px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.85);
+  font-size: 12.5px;
+  font-weight: 500;
+  animation: floatY 5s ease-in-out infinite, fadeUp 1s 1.5s both;
+  z-index: 3;
+}
+
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74,222,128,0.25);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(74,222,128,0.25);} 50%{box-shadow:0 0 0 6px rgba(74,222,128,0.08);} }
+@keyframes floatY { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+
+/* Particle canvas */
+#particleCanvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ─── RIGHT PANEL ─────────────────────────────────────────── */
+.panel-right {
+  flex: 0 0 40%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  padding: 40px 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel-right::before {
+  content: '';
+  position: absolute;
+  top: -140px; right: -140px;
+  width: 360px; height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(92,200,242,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Glass card */
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(92,200,242,0.15);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 44px 40px 40px;
+  animation: cardIn 0.7s 0.2s cubic-bezier(0.34,1.3,0.64,1) both;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.login-card:hover {
+  box-shadow: 0 32px 80px rgba(28,43,54,0.22), 0 4px 20px rgba(44,110,133,0.14);
+  transform: translateY(-2px);
+}
+
+@keyframes cardIn {
+  from { opacity:0; transform: translateY(28px) scale(0.97); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+
+/* Logo */
+.logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+  animation: logoFade 0.8s 0.5s both;
+}
+
+.logo-wrap img {
+  height: 56px;
+  object-fit: contain;
+  animation: floatLogo 5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(44,110,133,0.22));
+}
+
+@keyframes logoFade  { from{opacity:0;transform:translateY(-10px);} to{opacity:1;transform:translateY(0);} }
+@keyframes floatLogo { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+
+/* Headings */
+.card-heading {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-align: center;
+  line-height: 1.2;
+  animation: fadeUp 0.7s 0.7s both;
+}
+
+.card-sub {
+  margin-top: 8px;
+  text-align: center;
+  color: var(--text-mid);
+  font-size: 13.5px;
+  line-height: 1.55;
+  animation: fadeUp 0.7s 0.85s both;
+}
+
+/* Form */
+#loginForm {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-wrap {
+  position: relative;
+  animation: fadeUp 0.7s both;
+}
+.field-wrap:nth-child(1) { animation-delay: 0.95s; }
+.field-wrap:nth-child(2) { animation-delay: 1.05s; }
+
+.field-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-light);
+  pointer-events: none;
+  transition: color var(--transition);
+  display: flex;
+  align-items: center;
+}
+
+.field-wrap:focus-within .field-icon { color: var(--petrol); }
+
+.field-wrap input {
+  width: 100%;
+  padding: 14px 44px 14px 44px;
+  background: rgba(255,255,255,0.82);
+  border: 1.5px solid rgba(44,110,133,0.14);
+  border-radius: var(--radius-input);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  color: var(--text-dark);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.field-wrap input::placeholder { color: var(--text-light); }
+
+.field-wrap input:hover {
+  border-color: rgba(92,200,242,0.4);
+  background: rgba(255,255,255,0.96);
+}
+
+.field-wrap input:focus {
+  border-color: var(--sky);
+  background: var(--white);
+  box-shadow: 0 0 0 3.5px rgba(92,200,242,0.18);
+}
+
+/* Eye toggle */
+.eye-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition);
+  border-radius: 6px;
+}
+.eye-toggle:hover { color: var(--petrol); }
+.eye-toggle:focus-visible { outline: 2px solid var(--sky); outline-offset:2px; }
+
+/* Submit button */
+.btn-login {
+  margin-top: 8px;
+  width: 100%;
+  padding: 15px 24px;
+  background: linear-gradient(135deg, var(--sky) 0%, var(--petrol) 100%);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform var(--transition), box-shadow var(--transition), background var(--transition), opacity var(--transition);
+  animation: fadeUp 0.7s 1.15s both;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-login::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity var(--transition);
+  border-radius: 50px;
+}
+
+.btn-login:hover { transform: translateY(-2px) scale(1.015); box-shadow: 0 12px 32px rgba(44,110,133,0.46); }
+.btn-login:hover::after { opacity:1; }
+.btn-login:active { transform: translateY(0) scale(0.99); }
+.btn-login:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+/* Spinner */
+.spinner {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-login.loading .btn-text { display: none; }
+.btn-login.loading .btn-icon { display: none; }
+.btn-login.loading .spinner { display: block; }
+
+/* Message */
+#mensaje {
+  margin-top: 14px;
+  min-height: 20px;
+  text-align: center;
+  font-size: 13px;
+  border-radius: 10px;
+  transition: all var(--transition);
+}
+#mensaje.error  { color: #c0392b; background: rgba(192,57,43,0.07); padding: 10px 14px; }
+#mensaje.success{ color: #1a7a4a; background: rgba(26,122,74,0.07); padding: 10px 14px; }
+
+/* Footer note */
+.card-footer {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  animation: fadeUp 0.7s 1.3s both;
+}
+
+/* ─── ANIMATIONS ──────────────────────────────────────────── */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+@keyframes fadeDown { from{opacity:0;transform:translateY(-16px);} to{opacity:1;transform:translateY(0);} }
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .panel-left  { flex: 0 0 50%; }
+  .panel-right { flex: 0 0 50%; }
+  .brand-scene { padding: 40px 32px; }
+  .chart-card, .badge-float { display: none; }
+}
+
+@media (max-width: 640px) {
+  body { overflow: auto; }
+  .page-shell { flex-direction: column; }
+  .panel-left {
+    flex: 0 0 auto;
+    min-height: 220px;
+    display: block;
+  }
+  .brand-scene { padding: 32px 28px; gap: 0; }
+  .left-headline { font-size: 22px; }
+  .stat-row { gap: 20px; margin-top: 20px; }
+  .panel-right { flex: 1; padding: 32px 20px 40px; }
+  .login-card { padding: 36px 28px 32px; max-width: 100%; }
+  .btn-login { padding: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── DARK MODE ───────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #0f1e28;
+    --glass-bg: rgba(20,38,50,0.82);
+    --text-dark: #e8f4f8;
+    --text-mid:  #7fa8b8;
+    --text-light:#4a6270;
+  }
+  .field-wrap input {
+    background: rgba(30,55,72,0.7);
+    border-color: rgba(92,200,242,0.14);
+    color: var(--text-dark);
+  }
+  .field-wrap input:hover  { background: rgba(30,55,72,0.9); }
+  .field-wrap input:focus  { background: rgba(20,42,56,1); }
+  .login-card { border-color: rgba(92,200,242,0.10); }
+}
+</style>
 </head>
 
 <body>
 
-<div class="login-container">
+<div class="page-shell">
 
-    <img src="assets/logo.png" class="logo">
+  <!-- ── LEFT PANEL ── -->
+  <div class="panel-left">
+    <!-- Particles -->
+    <canvas id="particleCanvas"></canvas>
 
-    <h1>Portal de Clientes</h1>
+    <!-- Ambient orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-    <p>IM Servicios Contables</p>
+    <!-- Mini chart card -->
+    <div class="chart-card">
+      <div class="chart-title">Cumplimiento fiscal</div>
+      <div class="chart-bars">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+      <div class="chart-legend">↑ 98.4% este periodo</div>
+    </div>
 
-    <form id="loginForm">
+    <!-- Floating status badge -->
+    <div class="badge-float">
+      <span class="badge-dot"></span>
+      Portal operando con normalidad
+    </div>
 
-        <input
+    <!-- Brand copy -->
+    <div class="brand-scene">
+      <p class="left-tagline">IM Servicios Contables</p>
+      <h2 class="left-headline">Tu contabilidad,<br><em>en orden.</em></h2>
+      <p class="left-sub">Accede a tus declaraciones, honorarios y documentos desde un solo lugar, con seguridad y en tiempo real.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat-num">+200</span>
+          <span class="stat-label">Clientes activos</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">SAT</span>
+          <span class="stat-label">Cumplimiento total</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">24/7</span>
+          <span class="stat-label">Disponibilidad</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="panel-right">
+    <div class="login-card">
+
+      <!-- Logo -->
+      <div class="logo-wrap">
+        <img src="assets/logo.png" alt="IM Servicios Contables" id="logo">
+      </div>
+
+      <h1 class="card-heading">Bienvenido</h1>
+      <p class="card-sub">Accede de forma segura a tu<br>Portal de Clientes</p>
+
+      <!-- Form — IDs unchanged -->
+      <form id="loginForm" novalidate>
+
+        <div class="field-wrap">
+          <span class="field-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </span>
+          <input
             type="email"
             id="email"
+            name="email"
             placeholder="Correo electrónico"
+            autocomplete="email"
             required
-        >
+            aria-label="Correo electrónico"
+          >
+        </div>
 
-        <input
+        <div class="field-wrap">
+          <span class="field-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input
             type="password"
             id="password"
+            name="password"
             placeholder="Contraseña"
+            autocomplete="current-password"
             required
-        >
+            aria-label="Contraseña"
+          >
+          <button type="button" class="eye-toggle" id="eyeToggle" aria-label="Mostrar u ocultar contraseña">
+            <!-- Eye open -->
+            <svg id="eyeOpen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <!-- Eye closed (hidden initially) -->
+            <svg id="eyeClosed" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
 
-        <button type="submit">
-            Iniciar Sesión
+        <button type="submit" class="btn-login" id="btnLogin" aria-label="Iniciar sesión">
+          <span class="btn-text">Iniciar sesión</span>
+          <span class="btn-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </span>
+          <span class="spinner" aria-hidden="true"></span>
         </button>
 
-    </form>
+      </form>
 
-    <div id="mensaje"></div>
+      <div id="mensaje" role="alert" aria-live="polite"></div>
 
-</div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+      <div class="card-footer">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Conexión cifrada · IM Servicios Contables
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page-shell -->
+
+<!-- ── SCRIPTS ──────────────────────────────────────────────── -->
+<script>
+/* Particle system – lightweight, canvas-based */
+(function () {
+  const canvas = document.getElementById('particleCanvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  const COLORS = ['rgba(92,200,242,', 'rgba(255,255,255,', 'rgba(168,232,248,'];
+
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function mkParticle() {
+    return {
+      x:     rand(0, W),
+      y:     rand(0, H),
+      r:     rand(1, 3.2),
+      vx:    rand(-0.3, 0.3),
+      vy:    rand(-0.5, -0.08),
+      alpha: rand(0.1, 0.55),
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    };
+  }
+
+  function init() {
+    particles = Array.from({ length: 80 }, mkParticle);
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, W, H);
+    for (const p of particles) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + p.alpha + ')';
+      ctx.fill();
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.y < -10 || p.x < -10 || p.x > W + 10) {
+        p.x     = rand(0, W);
+        p.y     = H + 10;
+        p.alpha = rand(0.1, 0.55);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('resize', () => { resize(); init(); });
+  resize(); init(); tick();
+})();
+
+/* Eye toggle */
+document.getElementById('eyeToggle').addEventListener('click', function () {
+  const pwd  = document.getElementById('password');
+  const open = document.getElementById('eyeOpen');
+  const cls  = document.getElementById('eyeClosed');
+  if (pwd.type === 'password') {
+    pwd.type   = 'text';
+    open.style.display = 'none';
+    cls.style.display  = 'block';
+  } else {
+    pwd.type   = 'password';
+    open.style.display = 'block';
+    cls.style.display  = 'none';
+  }
+});
+
+/* Loading state on submit — actual auth handled by auth.js */
+document.getElementById('loginForm').addEventListener('submit', function () {
+  const btn = document.getElementById('btnLogin');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  /* auth.js resolves the promise and can call resetBtn() */
+  window._resetLoginBtn = function () {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  };
+  /* Fallback: re-enable after 8s */
+  setTimeout(window._resetLoginBtn, 8000);
+});
+</script>
+
 <script src="js/supabase.js"></script>
 <script src="js/auth.js"></script>
 

@@ -1,0 +1,68 @@
+<!--
+  ============================================================
+  BIENVENIDA — snippet de integración para dashboard.html
+  ============================================================
+  No reemplaza tu dashboard.html: son 4 bloques pequeños que se
+  pegan en lugares puntuales. No cambia ningún ID ni función que
+  ya use dashboard.js / supabase.js.
+  ============================================================
+-->
+
+<!-- ════════════════════════════════════════════════════════
+     BLOQUE 1 — dentro de <head>, junto a tus demás <link>
+     ════════════════════════════════════════════════════════ -->
+<link rel="stylesheet" href="css/bienvenida.css">
+
+
+<!-- ════════════════════════════════════════════════════════
+     BLOQUE 2 — justo después de <body class="dashboard-body">
+     (antes de <div class="dashboard-shell" ...>)
+     ════════════════════════════════════════════════════════ -->
+
+<div class="bv-fondo-dashboard" id="bvFondoDashboard"></div>
+
+<div id="bvOverlay" role="status" aria-live="polite">
+    <div class="bv-particulas"></div>
+    <div class="bv-contenido">
+
+        <div class="bv-logo-wrap">
+            <img src="assets/logo.png" alt="IM Servicios Contables"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <span class="bv-logo-fallback" aria-hidden="true">IM</span>
+        </div>
+
+        <h2 class="bv-saludo">
+            <span id="bvIcono" aria-hidden="true">☀️</span>
+            <span id="bvSaludoTexto"></span>
+        </h2>
+
+        <p class="bv-subtexto">Nos alegra tenerte de vuelta.</p>
+        <p class="bv-subtexto bv-linea2" id="bvFraseHora">Estamos preparando tu información financiera.</p>
+
+        <div class="bv-progreso"><div class="bv-progreso-barra"></div></div>
+
+    </div>
+</div>
+
+<div id="bvConfeti"></div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     BLOQUE 3 — justo después de <div class="dashboard-content">
+     (antes de tu <section class="resumen-panel"> o equivalente)
+     ════════════════════════════════════════════════════════ -->
+
+<div class="bv-tarjeta" id="bvTarjeta">
+    <div>
+        <p class="bv-tarjeta-saludo">👋 Bienvenido de nuevo</p>
+        <p class="bv-tarjeta-fecha">—</p>
+    </div>
+    <p class="bv-tarjeta-frase">Tu información está actualizada.</p>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     BLOQUE 4 — justo antes de </body>, DESPUÉS de
+     <script src="js/dashboard.js"></script>
+     ════════════════════════════════════════════════════════ -->
+<script src="js/bienvenida.js"></script>

@@ -1,0 +1,190 @@
+/* =====================================================
+   Honorarios — refuerzo visual de estado de pago
+   Dashboard | IM Servicios Contables
+   Archivo independiente: no modifica honorarios.css ni
+   ninguna clase/ID usada por la lógica existente.
+   ===================================================== */
+
+.hn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 24px;
+  pointer-events: none; /* no bloquea la interacción con la página debajo */
+  animation: hnOverlayEntrada .6s cubic-bezier(.2,1.4,.4,1) both;
+  transform-origin: 50% 50%;
+}
+
+.hn-overlay.hn-oculto {
+  opacity: 0;
+  transform: scale(1.08);
+  transition: opacity .4s cubic-bezier(.4,0,1,1), transform .4s ease;
+}
+
+@keyframes hnOverlayEntrada {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Fondo difuso detrás de la tarjeta, sin bloquear clics */
+.hn-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.12);
+}
+
+.hn-tarjeta {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+  padding: 28px 26px 26px;
+  border-radius: var(--r-lg, 16px);
+  box-shadow: 0 18px 48px rgba(15,23,42,0.18);
+  backdrop-filter: blur(10px);
+}
+
+/* ---------- Variante de éxito (verde) ---------- */
+
+.hn-tarjeta-exito {
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(220,252,231,0.95));
+  border: 1px solid rgba(34,197,94,0.35);
+}
+
+.hn-icono-exito {
+  background: linear-gradient(135deg, #22C55E, #15803D);
+}
+
+/* ---------- Variante de aviso (ámbar) ---------- */
+
+.hn-tarjeta-aviso {
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(255,243,224,0.95));
+  border: 1px solid rgba(217,119,6,0.35);
+}
+
+.hn-icono-aviso {
+  background: linear-gradient(135deg, #F59E0B, #B45309);
+}
+
+/* ---------- Elementos compartidos de la tarjeta ---------- */
+
+.hn-icono-circulo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin-bottom: 14px;
+  color: #fff;
+  opacity: 0;
+  transform: scale(.4);
+  animation: hnIconoEntrada .6s cubic-bezier(.2,1.8,.4,1) forwards .15s;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+}
+
+@keyframes hnIconoEntrada {
+  to { opacity: 1; transform: scale(1); }
+}
+
+.hn-titulo {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--ink-900, #1f2937);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hnFadeUp .5s ease forwards .3s;
+}
+
+.hn-texto {
+  font-size: 14px;
+  margin: 0 0 2px;
+  color: var(--ink-700, #374151);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hnFadeUp .5s ease forwards .42s;
+}
+
+.hn-subtexto {
+  font-size: 12.5px;
+  margin: 4px 0 0;
+  color: var(--ink-500, #6b7280);
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hnFadeUp .5s ease forwards .54s;
+}
+
+.hn-monto {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 30px;
+  font-weight: 800;
+  margin: 4px 0 6px;
+  color: #B45309;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: hnFadeUp .5s ease forwards .38s;
+}
+
+@keyframes hnFadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Confeti (solo celebración) ---------- */
+
+.hn-confeti-capa {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hn-confeti-pieza {
+  position: absolute;
+  top: -10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  animation-name: hnCaer;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes hnCaer {
+  to { transform: translateY(108vh) rotate(360deg); opacity: 0; }
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 480px) {
+  .hn-tarjeta { padding: 24px 20px 22px; }
+  .hn-monto { font-size: 26px; }
+}
+
+/* ---------- Accesibilidad ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hn-overlay,
+  .hn-icono-circulo, .hn-titulo, .hn-texto, .hn-subtexto, .hn-monto,
+  .hn-confeti-pieza {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .hn-confeti-capa { display: none; }
+}

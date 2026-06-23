@@ -454,6 +454,7 @@ function renderHistorial() {
     const hora = new Date(x.fecha_consulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     return `<li class="historial-item"><span class="h-nombre">${escaparHtml(x.nombre||'Documento')}</span><span class="h-meta">${cat?cat.nombre:''} · ${hora}</span></li>`;
   }).join('');
+  } 
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
   modalTituloEl.textContent    = doc.nombre || 'Documento';

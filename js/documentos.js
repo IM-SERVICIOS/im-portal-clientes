@@ -244,15 +244,23 @@ async function cargarDocumentosDeCliente(clienteId) {
   estadoCargaDocumentosEl.style.display = 'flex';
   contenedorDocumentosEl.innerHTML = '';
 
-  // CORRECCIÓN: usa "id_cliente" que es el nombre real en tu tabla
   const { data, error } = await supabaseClient
     .from('documentos')
     .select('*')
     .eq('id_cliente', clienteId);
 
-  let documentos = [];
-
   estadoCargaDocumentosEl.style.display = 'none';
+
+  if (error) {
+    console.error('Error cargando documentos:', error);
+    contenedorDocumentosEl.innerHTML = `<p class="estado-vacio-docs">No se pudieron cargar los documentos: ${escaparHtml(error.message)}</p>`;
+    estado.documentos = [];
+    poblarFiltros();
+    renderRail();
+    return;
+  }
+
+  estado.documentos = (data || []).map(normalizarFila);
 
   poblarFiltros();
   renderRail();
@@ -317,7 +325,7 @@ function documentosFiltrados() {
 function renderPanel() {
   const cat = CATEGORIAS.find(c => c.id === estado.categoriaActiva);
   categoriaTituloEl.textContent     = cat.nombre;
-  categoriaDescripcionEl.textContent = cat.descripcion + (estado.esDemo ? ' · Datos de ejemplo' : '');
+  categoriaDescripcionEl.textContent = cat.descripcion;
 
   const lista = documentosFiltrados();
   contadorResultadosEl.textContent = `${lista.length} documento${lista.length === 1 ? '' : 's'}`;
@@ -468,8 +476,8 @@ async function abrirVistaPrevia(doc) {
   modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p>Cargando documento seguro…</p></body>`;
 
   if (!doc.url_archivo) {
-    // Datos de ejemplo sin archivo real
-    modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p style="text-align:center;max-width:320px;">Vista previa de ejemplo.<br>Sube el archivo real desde <strong>Subir documento</strong> para verlo aquí.</p></body>`;
+    // El registro existe en BD pero aún no tiene archivo subido
+    modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p style="text-align:center;max-width:320px;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p></body>`;
     registrarHistorial(doc);
     return;
   }

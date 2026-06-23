@@ -145,7 +145,7 @@ function normalizarFila(fila) {
   return {
     // Campos existentes en la tabla original
     id:           fila.id,
-    id_cliente:   fila.cliente_id,
+    cliente_id:   fila.cliente_id,
     categoria:    fila.categoria      ?? fila.tipo_documento ?? null,
     nombre:       fila.nombre_archivo ?? fila.nombre         ?? null,
     url_archivo:  fila.url_archivo    ?? null,

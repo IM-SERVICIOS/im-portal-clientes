@@ -73,6 +73,22 @@ function formatearMoneda(numero) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numero || 0);
 }
 
+// La tabla "declaraciones" aún no tiene una columna dedicada al monto
+// realmente pagado, así que mientras se agrega, lo aproximamos sumando
+// ISR + IVA. Positivo = hay que pagar (color normal). Negativo = saldo
+// a favor (se pinta en verde).
+function calcularMontoDeclaracion(d) {
+  return (Number(d.isr) || 0) + (Number(d.iva) || 0);
+}
+
+function crearCeldaMonto(d) {
+  const monto = calcularMontoDeclaracion(d);
+  const celda = document.createElement('td');
+  celda.textContent = formatearMoneda(monto);
+  celda.classList.add('monto-declaracion', monto < 0 ? 'a-favor' : 'a-pagar');
+  return celda;
+}
+
 function esPresentada(estatus) {
   return typeof estatus === 'string' && estatus.trim().toLowerCase().includes('presentad');
 }
@@ -140,7 +156,7 @@ function renderTablaGeneral() {
   if (filtradas.length === 0) {
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
-    celda.colSpan = 6;
+    celda.colSpan = 7;
     celda.className = 'estado-vacio';
     celda.textContent = 'No hay declaraciones que coincidan con este filtro.';
     fila.appendChild(celda);
@@ -166,13 +182,15 @@ function renderTablaGeneral() {
     const tdIva = document.createElement('td');
     tdIva.textContent = formatearMoneda(d.iva);
 
+    const tdMonto = crearCeldaMonto(d);
+
     const tdEstatus = document.createElement('td');
     const pill = document.createElement('span');
     pill.className = `estatus-pill ${esPresentada(d.estatus_sat) ? 'verde' : 'gris'}`;
     pill.textContent = d.estatus_sat || 'Sin estatus';
     tdEstatus.appendChild(pill);
 
-    fila.append(tdCliente, tdPeriodo, tdTipo, tdIsr, tdIva, tdEstatus);
+    fila.append(tdCliente, tdPeriodo, tdTipo, tdIsr, tdIva, tdMonto, tdEstatus);
     tablaGeneralBodyEl.appendChild(fila);
   });
 }
@@ -337,7 +355,7 @@ function renderTablaCliente(declaraciones) {
   if (declaraciones.length === 0) {
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
-    celda.colSpan = 5;
+    celda.colSpan = 6;
     celda.className = 'estado-vacio';
     celda.textContent = 'No hay declaraciones registradas para este cliente.';
     fila.appendChild(celda);
@@ -365,13 +383,15 @@ function renderTablaCliente(declaraciones) {
     const tdIva = document.createElement('td');
     tdIva.textContent = formatearMoneda(d.iva);
 
+    const tdMonto = crearCeldaMonto(d);
+
     const tdEstatus = document.createElement('td');
     const pill = document.createElement('span');
     pill.className = `estatus-pill ${esPresentada(d.estatus_sat) ? 'verde' : 'gris'}`;
     pill.textContent = d.estatus_sat || 'Sin estatus';
     tdEstatus.appendChild(pill);
 
-    fila.append(tdPeriodo, tdTipo, tdIsr, tdIva, tdEstatus);
+    fila.append(tdPeriodo, tdTipo, tdIsr, tdIva, tdMonto, tdEstatus);
     tablaDeclaracionesBodyEl.appendChild(fila);
   });
 }
@@ -454,4 +474,3 @@ iniciar().catch((err) => {
   console.error(err);
   mostrarError('Ocurrió un error al cargar la información. Revisa la consola para más detalles.');
 });
-

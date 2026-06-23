@@ -454,38 +454,30 @@ function renderHistorial() {
     const hora = new Date(x.fecha_consulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     return `<li class="historial-item"><span class="h-nombre">${escaparHtml(x.nombre||'Documento')}</span><span class="h-meta">${cat?cat.nombre:''} · ${hora}</span></li>`;
   }).join('');
-}
-
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
-
   modalTituloEl.textContent    = doc.nombre || 'Documento';
   modalSubtituloEl.textContent = `${formatearFecha(doc.fecha)} · ${doc.tipo || 'PDF'}`;
   modalDescargarEl.href        = '#';
   modalEl.classList.add('abierto');
 
-  // Mostrar spinner mientras se genera la URL firmada
   modalIframeEl.removeAttribute('src');
-  modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p>Cargando documento seguro…</p></body>`;
+  modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p>Cargando documento…</p></body>`;
 
   if (!doc.url_archivo) {
-    // El registro existe en BD pero aún no tiene archivo subido
     modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p style="text-align:center;max-width:320px;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p></body>`;
     registrarHistorial(doc);
     return;
   }
 
-  // Generar URL firmada (bucket privado)
-  const urlFirmada = await obtenerUrlFirmada(doc.url_archivo);
+  const url = doc.url_archivo;
 
-  if (!urlFirmada) {
-    modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#B23A2E;background:#FAE4E1;"><p style="text-align:center;max-width:320px;">No se pudo generar el enlace seguro.<br>Verifica los permisos del bucket en Supabase Storage.</p></body>`;
-    return;
-  }
-
+  // Vista previa via Google Docs Viewer (evita bloqueos de iframe con PDFs externos)
   modalIframeEl.removeAttribute('srcdoc');
-  modalIframeEl.src         = urlFirmada;
-  modalDescargarEl.href     = urlFirmada;
+  modalIframeEl.src = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+
+  // Descarga directa con la URL pública
+  modalDescargarEl.href     = url;
   modalDescargarEl.download = doc.nombre || 'documento.pdf';
 
   registrarHistorial(doc);
@@ -501,13 +493,13 @@ async function descargarDocumento(doc) {
   if (!doc) return;
   registrarHistorial(doc);
 
-  if (!doc.url_archivo) { mostrarToast(`Descarga de ejemplo: ${doc.nombre}`); return; }
-
-  const url = await obtenerUrlFirmada(doc.url_archivo);
-  if (!url) { mostrarToast('No se pudo generar el enlace de descarga.'); return; }
+  if (!doc.url_archivo) { mostrarToast('Este documento aún no tiene archivo adjunto.'); return; }
 
   const a = document.createElement('a');
-  a.href = url; a.download = doc.nombre || 'documento.pdf'; a.click();
+  a.href     = doc.url_archivo;
+  a.download = doc.nombre || 'documento.pdf';
+  a.target   = '_blank';
+  a.click();
 }
 
 // =====================================================

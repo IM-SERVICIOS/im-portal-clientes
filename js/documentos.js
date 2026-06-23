@@ -170,8 +170,6 @@ function normalizarFila(fila) {
 // URL del archivo — bucket PÚBLICO (url_archivo ya es URL completa)
 // =====================================================
 async function obtenerUrlFirmada(ruta) {
-  // El bucket es público: url_archivo ya contiene la URL completa de descarga.
-  // No se necesita generar URL firmada.
   if (!ruta || ruta === '#') return null;
   return ruta;
 }

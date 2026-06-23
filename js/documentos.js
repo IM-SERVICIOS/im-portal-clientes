@@ -2,21 +2,19 @@
 // Documentos - Portal de Clientes IM Servicios Contables
 // =====================================================
 // COLUMNAS REALES DE LA TABLA "documentos":
-//   identificacion   → PK
-//   id_cliente       → FK a clientes
-//   tipo_documento   → categoría del documento
-//   nombre_archivo   → nombre visible
-//   url_archivo      → RUTA en Supabase Storage (bucket privado)
-//
-// Columnas adicionales a agregar con ALTER TABLE:
-//   categoria, subcategoria, fecha, estatus, observaciones,
+//   id               → PK (bigint)
+//   cliente_id       → FK a clientes (bigint)
+//   tipo_documento   → tipo de archivo (varchar)
+//   nombre_archivo   → nombre visible (varchar)
+//   url_archivo      → URL pública completa en Supabase Storage
+//   fecha_subida     → timestamp de carga
+//   categoria        → id de categoría (ej. 'presupuestos', 'acuses')
+//   subcategoria, nombre, fecha, tipo, estatus, observaciones,
 //   subido_por, linea_captura, importe, servicio, vigencia,
 //   responsable, metodo_pago, referencia, monto, impuesto
 //
-// BUCKET PRIVADO: url_archivo guarda la RUTA del archivo
-// (ej. "123/acuses/1750000000-acuse.pdf"), NO una URL pública.
-// Se genera una URL firmada (60 min) en tiempo real al
-// abrir la vista previa o descargar.
+// BUCKET PÚBLICO: url_archivo ya es la URL completa de acceso.
+// No se requiere generar URL firmada.
 // =====================================================
 
 const BUCKET_DOCUMENTOS = 'documentos';
@@ -84,7 +82,6 @@ const estado = {
   clientes: [],
   clienteId: null,
   documentos: [],
-  esDemo: false,
   categoriaActiva: 'acuses',
   vista: localStorage.getItem('imc_vista_documentos') === 'tabla' ? 'tabla' : 'tarjetas',
   seleccion: new Set(),
@@ -145,8 +142,8 @@ function mostrarToast(texto) {
 function normalizarFila(fila) {
   return {
     // Campos existentes en la tabla original
-    id:           fila.identificacion ?? fila.id,
-    id_cliente:   fila.id_cliente     ?? fila.cliente_id,
+    id:           fila.id,
+    id_cliente:   fila.cliente_id,
     categoria:    fila.categoria      ?? fila.tipo_documento ?? null,
     nombre:       fila.nombre_archivo ?? fila.nombre         ?? null,
     url_archivo:  fila.url_archivo    ?? null,
@@ -170,53 +167,13 @@ function normalizarFila(fila) {
 }
 
 // =====================================================
-// URL firmada para bucket PRIVADO
+// URL del archivo — bucket PÚBLICO (url_archivo ya es URL completa)
 // =====================================================
 async function obtenerUrlFirmada(ruta) {
   if (!ruta || ruta === '#') return null;
-  const { data, error } = await supabaseClient
-    .storage
-    .from(BUCKET_DOCUMENTOS)
-    .createSignedUrl(ruta, SIGNED_URL_EXPIRY);
-  if (error) { console.error('Error generando URL firmada:', error); return null; }
-  return data.signedUrl;
+  return ruta;
 }
 
-// =====================================================
-// Datos de ejemplo (solo mientras no haya filas reales)
-// =====================================================
-function generarDocumentosDemo(clienteId) {
-  let i = 0;
-  const docs = [];
-  const add = d => docs.push({ id: `demo-${++i}`, id_cliente: clienteId, url_archivo: null, tipo: 'PDF', ...d });
-
-  add({ categoria: 'acuses', subcategoria: 'Mayo', nombre: 'Acuse ISR mayo 2026', fecha: '2026-06-17', estatus: 'Presentado', observaciones: 'Sin saldo a cargo.', subido_por: 'Ana Ramírez', linea_captura: '07 18 0626 4471 8820' });
-  add({ categoria: 'acuses', subcategoria: 'Abril', nombre: 'Acuse IVA abril 2026', fecha: '2026-05-17', estatus: 'Presentado', subido_por: 'Ana Ramírez', linea_captura: '07 18 0526 3390 1170' });
-  add({ categoria: 'acuses', subcategoria: 'Marzo', nombre: 'Acuse ISR marzo 2026', fecha: '2026-04-17', estatus: 'Presentado', subido_por: 'Carlos Peña', linea_captura: '07 18 0426 2207 5541' });
-
-  add({ categoria: 'presupuestos', nombre: 'Presupuesto folio 0142', fecha: '2026-05-02', estatus: 'Aprobado', servicio: 'Contabilidad mensual + nómina', importe: 4800, subido_por: 'Ana Ramírez' });
-  add({ categoria: 'presupuestos', nombre: 'Presupuesto folio 0119', fecha: '2026-01-14', estatus: 'Vencido', servicio: 'Dictamen fiscal simplificado', importe: 15600, subido_por: 'Ana Ramírez', observaciones: 'No fue aceptado.' });
-
-  add({ categoria: 'opinion', nombre: 'Opinión cumplimiento jun 2026', fecha: '2026-06-10', estatus: 'Positiva', vigencia: '30 días', subido_por: 'Carlos Peña' });
-  add({ categoria: 'detalle_opinion', nombre: 'Detalle de opinión jun 2026', fecha: '2026-06-10', estatus: 'Sin observaciones', observaciones: 'Cliente al corriente en 32 obligaciones.', subido_por: 'Carlos Peña' });
-
-  add({ categoria: 'tramites', nombre: 'Alta en el SAT', fecha: '2021-03-02', estatus: 'Concluido', responsable: 'Ana Ramírez', subido_por: 'Ana Ramírez' });
-  add({ categoria: 'tramites', nombre: 'Renovación de e.firma', fecha: '2026-02-19', estatus: 'Concluido', responsable: 'Carlos Peña', observaciones: 'Vigente hasta 2030.', subido_por: 'Carlos Peña' });
-  add({ categoria: 'tramites', nombre: 'Registro patronal IMSS', fecha: '2026-01-22', estatus: 'En proceso', responsable: 'Carlos Peña', subido_por: 'Carlos Peña' });
-
-  add({ categoria: 'acuerdo', nombre: 'Acuerdo de servicio 2026', fecha: '2026-01-05', estatus: 'Vigente', vigencia: 'Hasta dic 2026', subido_por: 'Ana Ramírez' });
-
-  add({ categoria: 'remisiones', subcategoria: 'Semana 3', nombre: 'Remisión semana 3 — junio', fecha: '2026-06-19', estatus: 'Entregada', observaciones: 'Pólizas de ingresos y egresos.', subido_por: 'Ana Ramírez' });
-  add({ categoria: 'remisiones', subcategoria: 'Semana 2', nombre: 'Remisión semana 2 — junio', fecha: '2026-06-12', estatus: 'Entregada', subido_por: 'Ana Ramírez' });
-
-  add({ categoria: 'pagos_im', nombre: 'Honorarios mayo 2026', fecha: '2026-05-05', estatus: 'Pagado', monto: 4800, metodo_pago: 'Transferencia', referencia: 'TRX-88231', subido_por: 'Cliente' });
-  add({ categoria: 'pagos_im', nombre: 'Honorarios abril 2026', fecha: '2026-04-05', estatus: 'Pagado', monto: 4800, metodo_pago: 'Transferencia', referencia: 'TRX-87015', subido_por: 'Cliente' });
-
-  add({ categoria: 'pagos_declaraciones', subcategoria: 'Mayo', nombre: 'Pago ISR mayo 2026', fecha: '2026-06-17', estatus: 'Pagado', impuesto: 'ISR', importe: 2310.50, linea_captura: '07 18 0626 4471 8820', subido_por: 'Carlos Peña' });
-  add({ categoria: 'pagos_declaraciones', subcategoria: 'Marzo', nombre: 'Pago IVA marzo 2026', fecha: '2026-04-17', estatus: 'Pendiente', impuesto: 'IVA', importe: 1875, linea_captura: '07 18 0426 2207 5541', subido_por: 'Carlos Peña' });
-
-  return docs;
-}
 
 // =====================================================
 // Autenticación + clientes
@@ -280,28 +237,23 @@ async function cargarDocumentosDeCliente(clienteId) {
   estadoCargaDocumentosEl.style.display = 'flex';
   contenedorDocumentosEl.innerHTML = '';
 
-  // CORRECCIÓN: usa "id_cliente" que es el nombre real en tu tabla
   const { data, error } = await supabaseClient
     .from('documentos')
     .select('*')
-    .eq('id_cliente', clienteId);
+    .eq('cliente_id', clienteId);
 
-  let documentos = [];
-  let esDemo = false;
+  estadoCargaDocumentosEl.style.display = 'none';
 
-  // Considera que hay datos reales si alguna fila tiene categoria o nombre_archivo
-  const tieneReales = !error && Array.isArray(data) && data.some(f => f.categoria || f.nombre_archivo);
-
-  if (tieneReales) {
-    documentos = data.map(normalizarFila);
-  } else {
-    documentos = generarDocumentosDemo(clienteId);
-    esDemo = true;
+  if (error) {
+    console.error('Error cargando documentos:', error);
+    contenedorDocumentosEl.innerHTML = `<p class="estado-vacio-docs">No se pudieron cargar los documentos: ${escaparHtml(error.message)}</p>`;
+    estado.documentos = [];
+    poblarFiltros();
+    renderRail();
+    return;
   }
 
-  estado.documentos = documentos;
-  estado.esDemo     = esDemo;
-  estadoCargaDocumentosEl.style.display = 'none';
+  estado.documentos = (data || []).map(normalizarFila);
 
   poblarFiltros();
   renderRail();
@@ -366,7 +318,7 @@ function documentosFiltrados() {
 function renderPanel() {
   const cat = CATEGORIAS.find(c => c.id === estado.categoriaActiva);
   categoriaTituloEl.textContent     = cat.nombre;
-  categoriaDescripcionEl.textContent = cat.descripcion + (estado.esDemo ? ' · Datos de ejemplo' : '');
+  categoriaDescripcionEl.textContent = cat.descripcion;
 
   const lista = documentosFiltrados();
   contadorResultadosEl.textContent = `${lista.length} documento${lista.length === 1 ? '' : 's'}`;
@@ -502,38 +454,32 @@ function renderHistorial() {
     const hora = new Date(x.fecha_consulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     return `<li class="historial-item"><span class="h-nombre">${escaparHtml(x.nombre||'Documento')}</span><span class="h-meta">${cat?cat.nombre:''} · ${hora}</span></li>`;
   }).join('');
-}
-
+  } 
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
-
   modalTituloEl.textContent    = doc.nombre || 'Documento';
   modalSubtituloEl.textContent = `${formatearFecha(doc.fecha)} · ${doc.tipo || 'PDF'}`;
   modalDescargarEl.href        = '#';
   modalEl.classList.add('abierto');
 
-  // Mostrar spinner mientras se genera la URL firmada
   modalIframeEl.removeAttribute('src');
-  modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p>Cargando documento seguro…</p></body>`;
+  modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p>Cargando documento…</p></body>`;
 
   if (!doc.url_archivo) {
-    // Datos de ejemplo sin archivo real
-    modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p style="text-align:center;max-width:320px;">Vista previa de ejemplo.<br>Sube el archivo real desde <strong>Subir documento</strong> para verlo aquí.</p></body>`;
+    modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;"><p style="text-align:center;max-width:320px;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p></body>`;
     registrarHistorial(doc);
     return;
   }
 
-  // Generar URL firmada (bucket privado)
-  const urlFirmada = await obtenerUrlFirmada(doc.url_archivo);
+  const url = doc.url_archivo;
 
-  if (!urlFirmada) {
-    modalIframeEl.srcdoc = `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#B23A2E;background:#FAE4E1;"><p style="text-align:center;max-width:320px;">No se pudo generar el enlace seguro.<br>Verifica los permisos del bucket en Supabase Storage.</p></body>`;
-    return;
-  }
-
+  // Vista previa via Google Docs Viewer (evita bloqueos de iframe con PDFs externos)
   modalIframeEl.removeAttribute('srcdoc');
-  modalIframeEl.src         = urlFirmada;
-  modalDescargarEl.href     = urlFirmada;
+  modalIframeEl.removeAttribute('srcdoc');
+modalIframeEl.src = url;
+
+  // Descarga directa con la URL pública
+  modalDescargarEl.href     = url;
   modalDescargarEl.download = doc.nombre || 'documento.pdf';
 
   registrarHistorial(doc);
@@ -549,13 +495,13 @@ async function descargarDocumento(doc) {
   if (!doc) return;
   registrarHistorial(doc);
 
-  if (!doc.url_archivo) { mostrarToast(`Descarga de ejemplo: ${doc.nombre}`); return; }
-
-  const url = await obtenerUrlFirmada(doc.url_archivo);
-  if (!url) { mostrarToast('No se pudo generar el enlace de descarga.'); return; }
+  if (!doc.url_archivo) { mostrarToast('Este documento aún no tiene archivo adjunto.'); return; }
 
   const a = document.createElement('a');
-  a.href = url; a.download = doc.nombre || 'documento.pdf'; a.click();
+  a.href     = doc.url_archivo;
+  a.download = doc.nombre || 'documento.pdf';
+  a.target   = '_blank';
+  a.click();
 }
 
 // =====================================================

@@ -105,7 +105,9 @@ function esReciente(iso) {
   return diff >= 0 && diff <= 7;
 }
 function esAdmin(rol) {
-  return typeof rol === 'string' && rol.trim().toLowerCase().startsWith('admin');
+  if (typeof rol !== 'string') return false;
+  const r = rol.trim().toLowerCase();
+  return r.startsWith('admin') || r === 'supervisor' || r === 'staff' || r === 'contador';
 }
 function generarIniciales(correo) {
   if (!correo || !correo.includes('@')) return '··';
@@ -454,7 +456,8 @@ function renderHistorial() {
     const hora = new Date(x.fecha_consulta).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     return `<li class="historial-item"><span class="h-nombre">${escaparHtml(x.nombre||'Documento')}</span><span class="h-meta">${cat?cat.nombre:''} · ${hora}</span></li>`;
   }).join('');
-  } 
+}
+
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
   modalTituloEl.textContent    = doc.nombre || 'Documento';
@@ -473,14 +476,21 @@ async function abrirVistaPrevia(doc) {
 
   const url = doc.url_archivo;
 
-  // Vista previa via Google Docs Viewer (evita bloqueos de iframe con PDFs externos)
-  modalIframeEl.removeAttribute('srcdoc');
-  modalIframeEl.removeAttribute('srcdoc');
-modalIframeEl.src = url;
+  // El iframe no puede mostrar PDFs de Supabase por CORS.
+  // Mostramos mensaje y abrimos en nueva pestaña automáticamente.
+  modalIframeEl.removeAttribute('src');
+  modalIframeEl.srcdoc = `<body style="margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#647069;background:#EAEFEC;gap:16px;">
+    <p style="text-align:center;max-width:320px;font-size:15px;">El documento se abrió en una nueva pestaña.</p>
+    <a href="${url}" target="_blank" style="background:#0D3327;color:#fff;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Abrir documento ↗</a>
+  </body>`;
 
-  // Descarga directa con la URL pública
+  // Abrir PDF en nueva pestaña
+  window.open(url, '_blank');
+
+  // Botón descargar del modal
   modalDescargarEl.href     = url;
   modalDescargarEl.download = doc.nombre || 'documento.pdf';
+  modalDescargarEl.target   = '_blank';
 
   registrarHistorial(doc);
 }

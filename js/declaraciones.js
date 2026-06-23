@@ -73,6 +73,26 @@ function formatearMoneda(numero) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(numero || 0);
 }
 
+// monto_pagado = lo que realmente se determinó/pagó al SAT vía línea de
+// captura (columna real en Supabase, no un cálculo). Cuando es 0,
+// distinguimos si fue "declarada en ceros" o "saldo a favor" mirando el
+// signo de isr/iva, para mantener el color verde en los casos a favor.
+function crearCeldaMonto(d) {
+  const monto = Number(d.monto_pagado) || 0;
+  const hayPagoDirecto = monto > 0;
+  const haySaldoAFavor = (Number(d.isr) || 0) < 0 || (Number(d.iva) || 0) < 0;
+
+  const celda = document.createElement('td');
+  celda.textContent = formatearMoneda(monto);
+
+  let clase = 'en-ceros';
+  if (hayPagoDirecto) clase = 'a-pagar';
+  else if (haySaldoAFavor) clase = 'a-favor';
+
+  celda.classList.add('monto-declaracion', clase);
+  return celda;
+}
+
 function esPresentada(estatus) {
   return typeof estatus === 'string' && estatus.trim().toLowerCase().includes('presentad');
 }
@@ -140,7 +160,7 @@ function renderTablaGeneral() {
   if (filtradas.length === 0) {
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
-    celda.colSpan = 6;
+    celda.colSpan = 7;
     celda.className = 'estado-vacio';
     celda.textContent = 'No hay declaraciones que coincidan con este filtro.';
     fila.appendChild(celda);
@@ -166,13 +186,15 @@ function renderTablaGeneral() {
     const tdIva = document.createElement('td');
     tdIva.textContent = formatearMoneda(d.iva);
 
+    const tdMonto = crearCeldaMonto(d);
+
     const tdEstatus = document.createElement('td');
     const pill = document.createElement('span');
     pill.className = `estatus-pill ${esPresentada(d.estatus_sat) ? 'verde' : 'gris'}`;
     pill.textContent = d.estatus_sat || 'Sin estatus';
     tdEstatus.appendChild(pill);
 
-    fila.append(tdCliente, tdPeriodo, tdTipo, tdIsr, tdIva, tdEstatus);
+    fila.append(tdCliente, tdPeriodo, tdTipo, tdIsr, tdIva, tdMonto, tdEstatus);
     tablaGeneralBodyEl.appendChild(fila);
   });
 }
@@ -229,7 +251,7 @@ async function cargarModoGeneral(usuario) {
 
   const { data: declaraciones, error: errorDeclaraciones } = await supabaseClient
     .from('declaraciones')
-    .select('cliente_id, ejercicio, mes, tipo_declaracion, isr, iva, estatus_sat')
+    .select('cliente_id, ejercicio, mes, tipo_declaracion, isr, iva, monto_pagado, estatus_sat')
     .in('cliente_id', idsClientes);
 
   if (errorDeclaraciones) {
@@ -337,7 +359,7 @@ function renderTablaCliente(declaraciones) {
   if (declaraciones.length === 0) {
     const fila = document.createElement('tr');
     const celda = document.createElement('td');
-    celda.colSpan = 5;
+    celda.colSpan = 6;
     celda.className = 'estado-vacio';
     celda.textContent = 'No hay declaraciones registradas para este cliente.';
     fila.appendChild(celda);
@@ -365,13 +387,15 @@ function renderTablaCliente(declaraciones) {
     const tdIva = document.createElement('td');
     tdIva.textContent = formatearMoneda(d.iva);
 
+    const tdMonto = crearCeldaMonto(d);
+
     const tdEstatus = document.createElement('td');
     const pill = document.createElement('span');
     pill.className = `estatus-pill ${esPresentada(d.estatus_sat) ? 'verde' : 'gris'}`;
     pill.textContent = d.estatus_sat || 'Sin estatus';
     tdEstatus.appendChild(pill);
 
-    fila.append(tdPeriodo, tdTipo, tdIsr, tdIva, tdEstatus);
+    fila.append(tdPeriodo, tdTipo, tdIsr, tdIva, tdMonto, tdEstatus);
     tablaDeclaracionesBodyEl.appendChild(fila);
   });
 }
@@ -395,7 +419,7 @@ async function cargarModoCliente(clienteId) {
 
   const { data: declaraciones, error: errorDeclaraciones } = await supabaseClient
     .from('declaraciones')
-    .select('ejercicio, mes, tipo_declaracion, isr, iva, estatus_sat')
+    .select('ejercicio, mes, tipo_declaracion, isr, iva, monto_pagado, estatus_sat')
     .eq('cliente_id', clienteId);
 
   if (errorDeclaraciones) {
@@ -454,4 +478,3 @@ iniciar().catch((err) => {
   console.error(err);
   mostrarError('Ocurrió un error al cargar la información. Revisa la consola para más detalles.');
 });
-

@@ -223,6 +223,23 @@
   color: #64748b;
 }
 
+.monto-declaracion {
+  font-weight: 700;
+}
+
+.monto-declaracion.a-pagar {
+  color: var(--ink-900);
+}
+
+.monto-declaracion.a-favor {
+  color: var(--verde-700);
+}
+
+.monto-declaracion.en-ceros {
+  color: var(--ink-500);
+  font-weight: 500;
+}
+
 /* Responsive */
 
 @media (max-width: 720px) {

@@ -84,7 +84,6 @@ const estado = {
   clientes: [],
   clienteId: null,
   documentos: [],
-  esDemo: false,
   categoriaActiva: 'acuses',
   vista: localStorage.getItem('imc_vista_documentos') === 'tabla' ? 'tabla' : 'tarjetas',
   seleccion: new Set(),
@@ -182,41 +181,6 @@ async function obtenerUrlFirmada(ruta) {
   return data.signedUrl;
 }
 
-// =====================================================
-// Datos de ejemplo (solo mientras no haya filas reales)
-// =====================================================
-function generarDocumentosDemo(clienteId) {
-  let i = 0;
-  const docs = [];
-  const add = d => docs.push({ id: `demo-${++i}`, id_cliente: clienteId, url_archivo: null, tipo: 'PDF', ...d });
-
-  add({ categoria: 'acuses', subcategoria: 'Mayo', nombre: 'Acuse ISR mayo 2026', fecha: '2026-06-17', estatus: 'Presentado', observaciones: 'Sin saldo a cargo.', subido_por: 'Ana Ramírez', linea_captura: '07 18 0626 4471 8820' });
-  add({ categoria: 'acuses', subcategoria: 'Abril', nombre: 'Acuse IVA abril 2026', fecha: '2026-05-17', estatus: 'Presentado', subido_por: 'Ana Ramírez', linea_captura: '07 18 0526 3390 1170' });
-  add({ categoria: 'acuses', subcategoria: 'Marzo', nombre: 'Acuse ISR marzo 2026', fecha: '2026-04-17', estatus: 'Presentado', subido_por: 'Carlos Peña', linea_captura: '07 18 0426 2207 5541' });
-
-  add({ categoria: 'presupuestos', nombre: 'Presupuesto folio 0142', fecha: '2026-05-02', estatus: 'Aprobado', servicio: 'Contabilidad mensual + nómina', importe: 4800, subido_por: 'Ana Ramírez' });
-  add({ categoria: 'presupuestos', nombre: 'Presupuesto folio 0119', fecha: '2026-01-14', estatus: 'Vencido', servicio: 'Dictamen fiscal simplificado', importe: 15600, subido_por: 'Ana Ramírez', observaciones: 'No fue aceptado.' });
-
-  add({ categoria: 'opinion', nombre: 'Opinión cumplimiento jun 2026', fecha: '2026-06-10', estatus: 'Positiva', vigencia: '30 días', subido_por: 'Carlos Peña' });
-  add({ categoria: 'detalle_opinion', nombre: 'Detalle de opinión jun 2026', fecha: '2026-06-10', estatus: 'Sin observaciones', observaciones: 'Cliente al corriente en 32 obligaciones.', subido_por: 'Carlos Peña' });
-
-  add({ categoria: 'tramites', nombre: 'Alta en el SAT', fecha: '2021-03-02', estatus: 'Concluido', responsable: 'Ana Ramírez', subido_por: 'Ana Ramírez' });
-  add({ categoria: 'tramites', nombre: 'Renovación de e.firma', fecha: '2026-02-19', estatus: 'Concluido', responsable: 'Carlos Peña', observaciones: 'Vigente hasta 2030.', subido_por: 'Carlos Peña' });
-  add({ categoria: 'tramites', nombre: 'Registro patronal IMSS', fecha: '2026-01-22', estatus: 'En proceso', responsable: 'Carlos Peña', subido_por: 'Carlos Peña' });
-
-  add({ categoria: 'acuerdo', nombre: 'Acuerdo de servicio 2026', fecha: '2026-01-05', estatus: 'Vigente', vigencia: 'Hasta dic 2026', subido_por: 'Ana Ramírez' });
-
-  add({ categoria: 'remisiones', subcategoria: 'Semana 3', nombre: 'Remisión semana 3 — junio', fecha: '2026-06-19', estatus: 'Entregada', observaciones: 'Pólizas de ingresos y egresos.', subido_por: 'Ana Ramírez' });
-  add({ categoria: 'remisiones', subcategoria: 'Semana 2', nombre: 'Remisión semana 2 — junio', fecha: '2026-06-12', estatus: 'Entregada', subido_por: 'Ana Ramírez' });
-
-  add({ categoria: 'pagos_im', nombre: 'Honorarios mayo 2026', fecha: '2026-05-05', estatus: 'Pagado', monto: 4800, metodo_pago: 'Transferencia', referencia: 'TRX-88231', subido_por: 'Cliente' });
-  add({ categoria: 'pagos_im', nombre: 'Honorarios abril 2026', fecha: '2026-04-05', estatus: 'Pagado', monto: 4800, metodo_pago: 'Transferencia', referencia: 'TRX-87015', subido_por: 'Cliente' });
-
-  add({ categoria: 'pagos_declaraciones', subcategoria: 'Mayo', nombre: 'Pago ISR mayo 2026', fecha: '2026-06-17', estatus: 'Pagado', impuesto: 'ISR', importe: 2310.50, linea_captura: '07 18 0626 4471 8820', subido_por: 'Carlos Peña' });
-  add({ categoria: 'pagos_declaraciones', subcategoria: 'Marzo', nombre: 'Pago IVA marzo 2026', fecha: '2026-04-17', estatus: 'Pendiente', impuesto: 'IVA', importe: 1875, linea_captura: '07 18 0426 2207 5541', subido_por: 'Carlos Peña' });
-
-  return docs;
-}
 
 // =====================================================
 // Autenticación + clientes
@@ -287,20 +251,7 @@ async function cargarDocumentosDeCliente(clienteId) {
     .eq('id_cliente', clienteId);
 
   let documentos = [];
-  let esDemo = false;
 
-  // Considera que hay datos reales si alguna fila tiene categoria o nombre_archivo
-  const tieneReales = !error && Array.isArray(data) && data.some(f => f.categoria || f.nombre_archivo);
-
-  if (tieneReales) {
-    documentos = data.map(normalizarFila);
-  } else {
-    documentos = generarDocumentosDemo(clienteId);
-    esDemo = true;
-  }
-
-  estado.documentos = documentos;
-  estado.esDemo     = esDemo;
   estadoCargaDocumentosEl.style.display = 'none';
 
   poblarFiltros();

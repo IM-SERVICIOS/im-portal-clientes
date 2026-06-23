@@ -475,7 +475,8 @@ async function abrirVistaPrevia(doc) {
 
   // Vista previa via Google Docs Viewer (evita bloqueos de iframe con PDFs externos)
   modalIframeEl.removeAttribute('srcdoc');
-  modalIframeEl.src = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  modalIframeEl.removeAttribute('srcdoc');
+modalIframeEl.src = url;
 
   // Descarga directa con la URL pública
   modalDescargarEl.href     = url;

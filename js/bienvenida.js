@@ -16,7 +16,7 @@
   var CLAVE_SESION = 'bv_sesion_activa';
   var CLAVE_ULTIMA_ACTIVIDAD = 'bv_ultima_actividad';
   var CLAVE_CONFETI = 'bv_confeti_mostrado';
-  var DURACION_OVERLAY_MS = 2600;
+  var DURACION_OVERLAY_MS = 3200;
 
   var FRASES_TARJETA = [
     'Tu información está actualizada.',

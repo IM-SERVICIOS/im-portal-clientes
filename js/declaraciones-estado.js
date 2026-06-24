@@ -3,18 +3,21 @@
    Dashboard | IM Servicios Contables
 
    No modifica declaraciones.js: solo observa el DOM
-   (#badgeCumplimiento, que renderHeatmap() ya calcula y
-   pinta) y agrega una capa visual encima. No toca Supabase
-   ni la lógica de carga de datos.
+   (#badgeCumplimiento en modo cliente, #kpiCumplimientoGeneral
+   en modo general — ambos ya calculados y pintados por
+   declaraciones.js) y agrega una capa visual encima. No toca
+   Supabase ni la lógica de carga de datos.
 
-   Solo aplica en modo cliente específico (?cliente_id=...
-   en la URL), porque es ahí donde existe un % de
-   cumplimiento individual con sentido de "felicitación".
-   En modo general (lista de todos los clientes) no se
-   muestra nada.
+   - Modo cliente específico (?cliente_id=... en la URL):
+     % individual de ese cliente -> felicitación personal.
+   - Modo general (menú lateral "Declaraciones", sin
+     cliente_id): % PROMEDIO de todos los clientes permitidos
+     del usuario (admin o cliente con varias cuentas) -> mismo
+     tipo de refuerzo, a nivel cartera.
 
-   Se dispara cada vez que se entra a ver el detalle de un
-   cliente (sin sessionStorage), igual que en honorarios.
+   Se dispara cada vez que se entra a la página, en cualquiera
+   de los dos modos (sin sessionStorage), igual que en
+   honorarios.
    ===================================================== */
 
 (function () {
@@ -71,16 +74,20 @@
 
   // ---------- Caso 100% ----------
 
-  function mostrarCelebracion() {
+  function mostrarCelebracion(modoGeneral) {
     var overlay = crearOverlayBase('dcOverlayExito', 'dc-overlay-exito');
+
+    var texto = modoGeneral
+      ? 'Todas las declaraciones de tus clientes están presentadas.'
+      : 'Todas tus declaraciones están presentadas.';
 
     overlay.innerHTML =
       '<div class="dc-confeti-capa" id="dcConfetiCapa"></div>' +
       '<div class="dc-tarjeta dc-tarjeta-exito">' +
         '<div class="dc-icono-circulo dc-icono-exito">🎉</div>' +
         '<h3 class="dc-titulo">¡100% de cumplimiento!</h3>' +
-        '<p class="dc-texto">Todas tus declaraciones están presentadas.</p>' +
-        '<p class="dc-subtexto">Excelente manejo de tus obligaciones fiscales.</p>' +
+        '<p class="dc-texto">' + texto + '</p>' +
+        '<p class="dc-subtexto">Excelente manejo de las obligaciones fiscales.</p>' +
       '</div>';
 
     lanzarConfeti(document.getElementById('dcConfetiCapa'));
@@ -89,71 +96,111 @@
 
   // ---------- Caso parcial ----------
 
-  function mostrarProgreso(porcentaje) {
+  function mostrarProgreso(porcentaje, modoGeneral) {
     var overlay = crearOverlayBase('dcOverlayProgreso', 'dc-overlay-progreso');
+
+    var titulo = modoGeneral ? 'Cumplimiento general' : 'Cumplimiento actual';
+    var subtexto = modoGeneral
+      ? 'Estamos trabajando en las próximas declaraciones pendientes.'
+      : 'Estamos trabajando en tu próxima declaración.';
 
     overlay.innerHTML =
       '<div class="dc-tarjeta dc-tarjeta-progreso">' +
         '<div class="dc-icono-circulo dc-icono-progreso">📋</div>' +
-        '<h3 class="dc-titulo">Cumplimiento actual</h3>' +
+        '<h3 class="dc-titulo">' + titulo + '</h3>' +
         '<p class="dc-porcentaje">' + porcentaje + '%</p>' +
         '<div class="dc-barra-fondo"><div class="dc-barra-relleno" style="width:' + porcentaje + '%"></div></div>' +
-        '<p class="dc-subtexto">Estamos trabajando en tu próxima declaración.</p>' +
+        '<p class="dc-subtexto">' + subtexto + '</p>' +
       '</div>';
 
     cerrarOverlay(overlay, reducidoMovimiento ? 0 : DURACION_PROGRESO_MS);
   }
 
-  // ---------- Evaluación del estado ----------
+  // ---------- Lectura del porcentaje según el modo ----------
 
-  function evaluarEstado() {
-    if (yaEvaluado) return;
-    if (!estaEnModoCliente()) return;
-
+  function leerPorcentajeModoCliente() {
     var badge = document.getElementById('badgeCumplimiento');
-    if (!badge) return;
-    if (badge.style.display === 'none' || badge.style.display === '') return;
+    if (!badge) return null;
+    if (badge.style.display === 'none' || badge.style.display === '') return null;
 
     var texto = badge.textContent.trim();
-    if (!texto) return;
+    if (!texto) return null;
 
-    // "Sin declaraciones registradas" no trae número: caso neutro,
-    // no mostramos animación para no decir "0%, felicidades" ni
-    // inventar un progreso que no existe.
+    // "Sin declaraciones registradas" no trae número: caso neutro.
     var match = texto.match(/(\d+)%/);
-    if (!match) { yaEvaluado = true; return; }
+    if (!match) return -1; // -1 = "ya se sabe el estado, pero es neutro: no animar"
+    return parseInt(match[1], 10);
+  }
+
+  function leerPorcentajeModoGeneral() {
+    var modoGeneralEl = document.getElementById('modoGeneral');
+    var kpiEl = document.getElementById('kpiCumplimientoGeneral');
+    if (!modoGeneralEl || !kpiEl) return null;
+    if (modoGeneralEl.style.display === 'none' || modoGeneralEl.style.display === '') return null;
+
+    var kpiTotalEl = document.getElementById('kpiTotalDeclaraciones');
+    var total = kpiTotalEl ? parseInt(kpiTotalEl.textContent.trim(), 10) : NaN;
+    // Sin ninguna declaración registrada en toda la cartera: caso neutro.
+    if (!Number.isNaN(total) && total === 0) return -1;
+
+    var texto = kpiEl.textContent.trim();
+    var match = texto.match(/(\d+)%/);
+    if (!match) return null; // aún no se ha pintado el valor real
+    return parseInt(match[1], 10);
+  }
+
+  // ---------- Evaluación del estado ----------
+
+  function evaluarEstado(modoGeneral) {
+    if (yaEvaluado) return;
+
+    var porcentaje = modoGeneral ? leerPorcentajeModoGeneral() : leerPorcentajeModoCliente();
+    if (porcentaje === null) return; // todavía no hay datos pintados
 
     yaEvaluado = true;
-    var porcentaje = parseInt(match[1], 10);
+    if (porcentaje < 0) return; // caso neutro: sin declaraciones registradas
 
     if (porcentaje >= 100) {
-      mostrarCelebracion();
+      mostrarCelebracion(modoGeneral);
     } else {
-      mostrarProgreso(porcentaje);
+      mostrarProgreso(porcentaje, modoGeneral);
     }
   }
 
   // ---------- Arranque ----------
 
   function iniciar() {
-    if (!estaEnModoCliente()) return;
+    var modoGeneral = !estaEnModoCliente();
 
-    var badge = document.getElementById('badgeCumplimiento');
-    if (!badge) return;
+    var elementoClave = modoGeneral
+      ? document.getElementById('modoGeneral')
+      : document.getElementById('badgeCumplimiento');
 
-    if (badge.style.display !== 'none' && badge.style.display !== '') {
-      evaluarEstado();
-      return;
+    if (!elementoClave) return;
+
+    // Si ya está visible/pintado al cargar este script (carga muy
+    // rápida), evalúa directo.
+    if (elementoClave.style.display !== 'none' && elementoClave.style.display !== '') {
+      evaluarEstado(modoGeneral);
+      if (yaEvaluado) return;
     }
 
     var observador = new MutationObserver(function () {
-      if (badge.style.display !== 'none' && badge.style.display !== '') {
-        observador.disconnect();
-        setTimeout(evaluarEstado, 50);
-      }
+      setTimeout(function () { evaluarEstado(modoGeneral); }, 60);
+      if (yaEvaluado) observador.disconnect();
     });
 
-    observador.observe(badge, { attributes: true, attributeFilter: ['style'] });
+    observador.observe(elementoClave, { attributes: true, attributeFilter: ['style'] });
+
+    // En modo general, el KPI se pinta como texto dentro de un nodo
+    // que ya estaba visible desde antes en algunos casos (ej. clientes
+    // sin declaraciones): observamos también su propio contenido.
+    if (modoGeneral) {
+      var kpiEl = document.getElementById('kpiCumplimientoGeneral');
+      if (kpiEl) {
+        observador.observe(kpiEl, { characterData: true, childList: true, subtree: true });
+      }
+    }
 
     setTimeout(function () { observador.disconnect(); }, 8000);
   }

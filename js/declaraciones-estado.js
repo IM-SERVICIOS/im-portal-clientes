@@ -135,36 +135,56 @@
   function leerPorcentajeModoGeneral() {
     var modoGeneralEl = document.getElementById('modoGeneral');
     var kpiEl = document.getElementById('kpiCumplimientoGeneral');
-    if (!modoGeneralEl || !kpiEl) return null;
+    var kpiTotalEl = document.getElementById('kpiTotalDeclaraciones');
+    if (!modoGeneralEl || !kpiEl || !kpiTotalEl) return null;
     if (modoGeneralEl.style.display === 'none' || modoGeneralEl.style.display === '') return null;
 
-    var kpiTotalEl = document.getElementById('kpiTotalDeclaraciones');
-    var total = kpiTotalEl ? parseInt(kpiTotalEl.textContent.trim(), 10) : NaN;
-    // Sin ninguna declaración registrada en toda la cartera: caso neutro.
+    var textoTotal = kpiTotalEl.textContent.trim();
+    var textoCumplimiento = kpiEl.textContent.trim();
+
+    // Mientras no haya signo "%" en el KPI de cumplimiento, los datos
+    // reales todavía no se pintaron (calcularKpisGenerales no ha
+    // corrido todavía, aunque #modoGeneral ya esté visible).
+    var match = textoCumplimiento.match(/(\d+)%/);
+    if (!match) return null;
+
+    var total = parseInt(textoTotal, 10);
+    // Cero clientes asignados o cero declaraciones en toda la cartera:
+    // caso neutro real (ya confirmado, porque el "%" ya se pintó).
     if (!Number.isNaN(total) && total === 0) return -1;
 
-    var texto = kpiEl.textContent.trim();
-    var match = texto.match(/(\d+)%/);
-    if (!match) return null; // aún no se ha pintado el valor real
     return parseInt(match[1], 10);
   }
 
-  // ---------- Evaluación del estado ----------
+  // ---------- Evaluación del estado (con pequeño debounce) ----------
+
+  var temporizadorDebounce = null;
+  var observadorActivo = null;
 
   function evaluarEstado(modoGeneral) {
     if (yaEvaluado) return;
 
-    var porcentaje = modoGeneral ? leerPorcentajeModoGeneral() : leerPorcentajeModoCliente();
-    if (porcentaje === null) return; // todavía no hay datos pintados
+    // Debounce: cada vez que el DOM cambia, esperamos un breve
+    // instante de "silencio" antes de leer, para no capturar un
+    // estado intermedio a medio pintar.
+    if (temporizadorDebounce) clearTimeout(temporizadorDebounce);
+    temporizadorDebounce = setTimeout(function () {
+      if (yaEvaluado) return;
 
-    yaEvaluado = true;
-    if (porcentaje < 0) return; // caso neutro: sin declaraciones registradas
+      var porcentaje = modoGeneral ? leerPorcentajeModoGeneral() : leerPorcentajeModoCliente();
+      if (porcentaje === null) return; // todavía no hay datos pintados; seguimos esperando
 
-    if (porcentaje >= 100) {
-      mostrarCelebracion(modoGeneral);
-    } else {
-      mostrarProgreso(porcentaje, modoGeneral);
-    }
+      yaEvaluado = true;
+      if (observadorActivo) observadorActivo.disconnect();
+
+      if (porcentaje < 0) return; // caso neutro: sin declaraciones registradas
+
+      if (porcentaje >= 100) {
+        mostrarCelebracion(modoGeneral);
+      } else {
+        mostrarProgreso(porcentaje, modoGeneral);
+      }
+    }, 120);
   }
 
   // ---------- Arranque ----------
@@ -178,17 +198,10 @@
 
     if (!elementoClave) return;
 
-    // Si ya está visible/pintado al cargar este script (carga muy
-    // rápida), evalúa directo.
-    if (elementoClave.style.display !== 'none' && elementoClave.style.display !== '') {
-      evaluarEstado(modoGeneral);
-      if (yaEvaluado) return;
-    }
-
     var observador = new MutationObserver(function () {
-      setTimeout(function () { evaluarEstado(modoGeneral); }, 60);
-      if (yaEvaluado) observador.disconnect();
+      evaluarEstado(modoGeneral);
     });
+    observadorActivo = observador;
 
     observador.observe(elementoClave, { attributes: true, attributeFilter: ['style'] });
 
@@ -200,6 +213,13 @@
       if (kpiEl) {
         observador.observe(kpiEl, { characterData: true, childList: true, subtree: true });
       }
+    }
+
+    // Si el contenido ya estaba visible/pintado al cargar este script
+    // (carga muy rápida), evaluamos directo también, por si no llega
+    // a dispararse ninguna mutación adicional.
+    if (elementoClave.style.display !== 'none' && elementoClave.style.display !== '') {
+      evaluarEstado(modoGeneral);
     }
 
     setTimeout(function () { observador.disconnect(); }, 8000);

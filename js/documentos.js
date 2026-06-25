@@ -6,15 +6,18 @@
 //   cliente_id       → FK a clientes (bigint)
 //   tipo_documento   → tipo de archivo (varchar)
 //   nombre_archivo   → nombre visible (varchar)
-//   url_archivo      → URL pública completa en Supabase Storage
-//   fecha_subida     → timestamp de carga
+//   url_archivo      → RUTA dentro del bucket (NO una URL completa)
 //   categoria        → id de categoría (ej. 'presupuestos', 'acuses')
 //   subcategoria, nombre, fecha, tipo, estatus, observaciones,
 //   subido_por, linea_captura, importe, servicio, vigencia,
 //   responsable, metodo_pago, referencia, monto, impuesto
 //
-// BUCKET PÚBLICO: url_archivo ya es la URL completa de acceso.
-// No se requiere generar URL firmada.
+// BUCKET PRIVADO: url_archivo guarda la RUTA del archivo dentro
+// del bucket "documentos" (ej. "1/presupuestos/123-archivo.pdf"),
+// NO una URL pública. Se genera una URL firmada (1 hora) en tiempo
+// real cada vez que se abre la vista previa o se descarga, para que
+// los documentos fiscales nunca queden expuestos con un link público
+// permanente.
 // =====================================================
 
 const BUCKET_DOCUMENTOS = 'documentos';
@@ -136,21 +139,15 @@ function mostrarToast(texto) {
 
 // =====================================================
 // NORMALIZACIÓN DE FILAS
-// Adapta los nombres reales de columna de Supabase a los
-// nombres que usan todas las funciones de render de este
-// archivo. Así el resto del código no necesita cambiar si
-// en el futuro renombras columnas en la BD.
 // =====================================================
 function normalizarFila(fila) {
   return {
-    // Campos existentes en la tabla original
     id:           fila.id,
     cliente_id:   fila.cliente_id,
     categoria:    fila.categoria      ?? fila.tipo_documento ?? null,
     nombre:       fila.nombre_archivo ?? fila.nombre         ?? null,
     url_archivo:  fila.url_archivo    ?? null,
     tipo:         fila.tipo_documento ?? fila.tipo           ?? 'PDF',
-    // Columnas enriquecidas (agregadas con ALTER TABLE)
     subcategoria:  fila.subcategoria  ?? null,
     fecha:         fila.fecha         ?? null,
     estatus:       fila.estatus       ?? null,
@@ -169,13 +166,28 @@ function normalizarFila(fila) {
 }
 
 // =====================================================
-// URL del archivo — bucket PÚBLICO (url_archivo ya es URL completa)
+// URL firmada — bucket PRIVADO
+// "ruta" debe ser la ruta relativa dentro del bucket
+// (ej. "1/presupuestos/123-archivo.pdf"), no una URL completa.
 // =====================================================
 async function obtenerUrlFirmada(ruta) {
   if (!ruta || ruta === '#') return null;
-  return ruta;
-}
 
+  // Por si alguna fila vieja todavía tiene la URL pública completa
+  // guardada en vez de solo la ruta, se extrae la parte útil.
+  const marcador = `/object/public/${BUCKET_DOCUMENTOS}/`;
+  if (ruta.includes(marcador)) {
+    ruta = ruta.split(marcador)[1];
+  }
+
+  const { data, error } = await supabaseClient
+    .storage
+    .from(BUCKET_DOCUMENTOS)
+    .createSignedUrl(ruta, SIGNED_URL_EXPIRY);
+
+  if (error) { console.error('Error generando URL firmada:', error); return null; }
+  return data.signedUrl;
+}
 
 // =====================================================
 // Autenticación + clientes
@@ -231,7 +243,7 @@ async function inicializar() {
 }
 
 // =====================================================
-// Carga de documentos — usa los nombres reales de columna
+// Carga de documentos
 // =====================================================
 async function cargarDocumentosDeCliente(clienteId) {
   estado.clienteId = clienteId;
@@ -439,7 +451,7 @@ function actualizarBarraSeleccion() {
 }
 
 // =====================================================
-// Vista previa PDF — bucket PRIVADO (URL firmada)
+// Historial
 // =====================================================
 function registrarHistorial(doc) {
   const h = JSON.parse(localStorage.getItem('imc_historial_documentos') || '[]');
@@ -458,6 +470,9 @@ function renderHistorial() {
   }).join('');
 }
 
+// =====================================================
+// Vista previa — genera URL firmada antes de mostrar el link
+// =====================================================
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
 
@@ -465,33 +480,46 @@ async function abrirVistaPrevia(doc) {
   modalSubtituloEl.textContent = `${formatearFecha(doc.fecha)} · ${doc.tipo || 'PDF'}`;
   modalEl.classList.add('abierto');
 
-  // Ocultar iframe completamente
   modalIframeEl.style.display = 'none';
   modalIframeEl.removeAttribute('src');
   modalIframeEl.removeAttribute('srcdoc');
 
-  // Limpiar cuerpo del modal y mostrar botones
   const cuerpo = modalIframeEl.parentElement;
   cuerpo.querySelectorAll('.modal-doc-acciones').forEach(el => el.remove());
+  modalDescargarEl.style.display = 'none';
 
   if (!doc.url_archivo) {
     const aviso = document.createElement('div');
     aviso.className = 'modal-doc-acciones';
     aviso.innerHTML = `<p style="color:#647069;text-align:center;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p>`;
     cuerpo.appendChild(aviso);
-    modalDescargarEl.style.display = 'none';
     registrarHistorial(doc);
     return;
   }
 
-  const url = doc.url_archivo;
+  // Aviso de "generando enlace seguro..." mientras se pide la URL firmada
+  const cargando = document.createElement('div');
+  cargando.className = 'modal-doc-acciones';
+  cargando.innerHTML = `<p style="color:#647069;text-align:center;">Generando enlace seguro…</p>`;
+  cuerpo.appendChild(cargando);
 
-  // Mostrar botón abrir y configurar descargar
+  const url = await obtenerUrlFirmada(doc.url_archivo);
+  cargando.remove();
+
+  if (!url) {
+    const error = document.createElement('div');
+    error.className = 'modal-doc-acciones';
+    error.innerHTML = `<p style="color:#B23A2E;text-align:center;">No se pudo generar el enlace seguro.<br>Verifica que el archivo exista en esa ruta dentro del bucket "documentos".</p>`;
+    cuerpo.appendChild(error);
+    return;
+  }
+
   const acciones = document.createElement('div');
   acciones.className = 'modal-doc-acciones';
   acciones.innerHTML = `
     <p style="color:#647069;font-size:14px;text-align:center;margin-bottom:20px;">
-      Los PDFs se abren en una nueva pestaña para mayor compatibilidad.
+      Los PDFs se abren en una nueva pestaña para mayor compatibilidad.<br>
+      Este enlace caduca en 1 hora por seguridad.
     </p>
     <a href="${escaparHtml(url)}" target="_blank" rel="noopener"
        style="display:inline-block;background:#0D3327;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:12px;">
@@ -525,8 +553,11 @@ async function descargarDocumento(doc) {
 
   if (!doc.url_archivo) { mostrarToast('Este documento aún no tiene archivo adjunto.'); return; }
 
+  const url = await obtenerUrlFirmada(doc.url_archivo);
+  if (!url) { mostrarToast('No se pudo generar el enlace de descarga.'); return; }
+
   const a = document.createElement('a');
-  a.href     = doc.url_archivo;
+  a.href     = url;
   a.download = doc.nombre || 'documento.pdf';
   a.target   = '_blank';
   a.click();

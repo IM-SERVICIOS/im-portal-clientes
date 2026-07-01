@@ -818,11 +818,14 @@ body {
 
   /* Se amplió drásticamente el espacio de generación para cubrir 
      desde la esquina superior izquierda hasta abarcar el centro y la derecha */
-  function galaxyPoint() {
-    // Genera puntos distribuidos en un área mucho más amplia del contenedor
-    const x = rand(-W * 0.1, W * 1.1);
-    const y = rand(-H * 0.1, H * 1.1);
-    
+function galaxyPoint() {
+  // Permite que las partículas nazcan en CUALQUIER lugar del panel izquierdo,
+  // e incluso un 20% más allá de los límites laterales (W) y verticales (H)
+  // para que entren desde fuera de la pantalla de forma fluida.
+  const x = rand(-canvas.width * 0.2, canvas.width * 1.2);
+  const y = rand(-canvas.height * 0.2, canvas.height * 1.2);
+
+  return { x, y };
     // Filtro estético para concentrar sutilmente más partículas arriba a la izquierda, 
     // pero permitiendo que se expandan suavemente hacia el resto de la pantalla.
     if (Math.random() > 0.4 && (x > W * 0.75 && y > H * 0.75)) {

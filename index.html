@@ -128,8 +128,19 @@ body {
   color: var(--sky);
 }
 
+/* Eslogan añadido y estilizado */
+.left-eslogan {
+  margin-top: 10px;
+  color: var(--sky);
+  font-size: 15px;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  animation: fadeUp 0.9s 0.7s both;
+}
+
 .left-sub {
-  margin-top: 16px;
+  margin-top: 12px;
   color: rgba(255,255,255,0.52);
   font-size: 14px;
   line-height: 1.65;
@@ -411,6 +422,24 @@ body {
 
 .field-wrap input::placeholder { color: var(--text-light); }
 
+.field-wrap input[type="password"]::-ms-reveal,
+.field-wrap input[type="password"]::-ms-clear {
+  display: none;
+}
+.field-wrap input::-webkit-textfield-decoration-container,
+.field-wrap input::-webkit-credentials-auto-fill-button,
+.field-wrap input::-webkit-caps-lock-indicator {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
+.field-wrap.has-toggle input {
+  padding-right: 46px;
+}
+
 .field-wrap input:hover {
   border-color: rgba(92,200,242,0.4);
   background: rgba(255,255,255,0.96);
@@ -425,16 +454,18 @@ body {
 /* Eye toggle */
 .eye-toggle {
   position: absolute;
-  right: 14px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  background: none;
+  z-index: 2;
+  background: transparent;
   border: none;
   cursor: pointer;
   color: var(--text-light);
   padding: 4px;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: color var(--transition);
   border-radius: 6px;
 }
@@ -617,17 +648,13 @@ body {
 
 <div class="page-shell">
 
-  <!-- ── LEFT PANEL ── -->
   <div class="panel-left">
-    <!-- Particles -->
     <canvas id="particleCanvas"></canvas>
 
-    <!-- Ambient orbs -->
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
 
-    <!-- Mini chart card -->
     <div class="chart-card">
       <div class="chart-title">Cumplimiento fiscal</div>
       <div class="chart-bars">
@@ -638,16 +665,15 @@ body {
       <div class="chart-legend">↑ 98.4% este periodo</div>
     </div>
 
-    <!-- Floating status badge -->
     <div class="badge-float">
       <span class="badge-dot"></span>
       Portal operando con normalidad
     </div>
 
-    <!-- Brand copy -->
     <div class="brand-scene">
       <p class="left-tagline">IM Servicios Contables</p>
       <h2 class="left-headline">Tu contabilidad,<br><em>en orden.</em></h2>
+      <p class="left-eslogan">Su tranquilidad financiera, nuestra prioridad.</p>
       <p class="left-sub">Accede a tus declaraciones, honorarios y documentos desde un solo lugar, con seguridad y en tiempo real.</p>
       <div class="stat-row">
         <div class="stat">
@@ -666,11 +692,9 @@ body {
     </div>
   </div>
 
-  <!-- ── RIGHT PANEL ── -->
   <div class="panel-right">
     <div class="login-card">
 
-      <!-- Logo -->
       <div class="logo-wrap">
         <img src="assets/logo.png" alt="IM Servicios Contables" id="logo">
       </div>
@@ -678,7 +702,6 @@ body {
       <h1 class="card-heading">Bienvenido</h1>
       <p class="card-sub">Accede de forma segura a tu<br>Portal de Clientes</p>
 
-      <!-- Form — IDs unchanged -->
       <form id="loginForm" novalidate>
 
         <div class="field-wrap">
@@ -699,7 +722,7 @@ body {
           >
         </div>
 
-        <div class="field-wrap">
+        <div class="field-wrap has-toggle">
           <span class="field-icon" aria-hidden="true">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -716,12 +739,10 @@ body {
             aria-label="Contraseña"
           >
           <button type="button" class="eye-toggle" id="eyeToggle" aria-label="Mostrar u ocultar contraseña">
-            <!-- Eye open -->
             <svg id="eyeOpen" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
               <circle cx="12" cy="12" r="3"/>
             </svg>
-            <!-- Eye closed (hidden initially) -->
             <svg id="eyeClosed" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
               <line x1="1" y1="1" x2="23" y2="23"/>
@@ -750,14 +771,14 @@ body {
             <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
           </svg>
         </a>
-        <a class="social-link" href="https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.instagram.com%2Fimservicioscontables%3Ffbclid%3DIwZXh0bgNhZW0CMTAAc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHqMbJw0DXVUrqtC3E7g6o2e_nE5a3jtCP-VuyThSFfOqFd-b8uUG3Y5_nAlq_aem_xhAJvHZqqeV_feF4XWHqlg&h=AUDKHKGDMeWOnzXHzNFbtdBhoKpccGngqjdRt5AyWGik76sHG0tBSJdI2JnlDjBW2OoWY4oo262w35xvb7GNpinAgBofF4hHa0-BySP0YdlZMC4a3lDXPNCBj8ZN7tyJuDXV" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><!-- TODO: reemplazar # con el enlace real de Instagram -->
+        <a class="social-link" href="https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.instagram.com%2Fimservicioscontables%3Ffbclid%3DIwZXh0bgNhZW0CMTAAc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHqMbJw0DXVUrqtC3E7g6o2e_nE5a3jtCP-VuyThSFfOqFd-b8uUG3Y5_nAlq_aem_xhAJvHZqqeV_feF4XWHqlg&h=AUDKHKGDMeWOnzXHzNFbtdBhoKpccGngqjdRt5AyWGik76sHG0tBSJdI2JnlDjBW2OoWY4oo262w35xvb7GNpinAgBofF4hHa0-BySP0YdlZMC4a3lDXPNCBj8ZN7tyJuDXV" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
             <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
             <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
           </svg>
         </a>
-        <a class="social-link" href="https://im-servicios.github.io/CONTABLES/index.html" target="_blank" rel="noopener noreferrer" aria-label="Sitio web"><!-- TODO: reemplazar # con el enlace real del sitio web -->
+        <a class="social-link" href="https://im-servicios.github.io/CONTABLES/index.html" target="_blank" rel="noopener noreferrer" aria-label="Sitio web">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10"/>
             <line x1="2" y1="12" x2="22" y2="12"/>
@@ -777,11 +798,10 @@ body {
     </div>
   </div>
 
-</div><!-- /page-shell -->
+</div>
 
-<!-- ── SCRIPTS ──────────────────────────────────────────────── -->
 <script>
-/* Particle system – lightweight, canvas-based */
+/* Sistema de partículas reconfigurado para expandirse por toda la pantalla */
 (function () {
   const canvas = document.getElementById('particleCanvas');
   const ctx    = canvas.getContext('2d');
@@ -796,59 +816,70 @@ body {
 
   function rand(a, b) { return a + Math.random() * (b - a); }
 
-  /* Diagonal scatter band: sweeps from upper-mid area down toward
-     the lower-left, wider through the middle, narrower at the ends —
-     mirrors the drifting dust/molecule trail in the reference art. */
-  function bandPoint() {
-    const t = rand(0, 1);
-    const sx = W * 0.42, sy = H * 0.0;
-    const ex = W * 0.03, ey = H * 0.96;
-    const bx = sx + (ex - sx) * t;
-    const by = sy + (ey - sy) * t;
-    const widthFactor = 0.09 + 0.24 * Math.sin(t * Math.PI);
-    const spread = widthFactor * W;
-    return {
-      x: bx + (Math.random() - 0.5) * spread,
-      y: by + (Math.random() - 0.5) * spread * 0.6,
-    };
+  /* Se amplió drásticamente el espacio de generación para cubrir 
+     desde la esquina superior izquierda hasta abarcar el centro y la derecha */
+  function galaxyPoint() {
+    // Genera puntos distribuidos en un área mucho más amplia del contenedor
+    const x = rand(-W * 0.1, W * 1.1);
+    const y = rand(-H * 0.1, H * 1.1);
+    
+    // Filtro estético para concentrar sutilmente más partículas arriba a la izquierda, 
+    // pero permitiendo que se expandan suavemente hacia el resto de la pantalla.
+    if (Math.random() > 0.4 && (x > W * 0.75 && y > H * 0.75)) {
+      return { x: rand(-W * 0.1, W * 0.5), y: rand(-H * 0.1, H * 0.5) };
+    }
+
+    return { x, y };
   }
 
   function mkParticle() {
-    const isBand = Math.random() < 0.8;
-    const p = isBand ? bandPoint() : { x: rand(0, W), y: rand(0, H) };
-    const baseAlpha = rand(0.08, 0.6);
+    const p = galaxyPoint();
+    const isBright = Math.random() < 0.20; // 20% son más brillantes para simular polvo estelar notable
+    const baseAlpha = isBright ? rand(0.40, 0.85) : rand(0.08, 0.45);
     return {
       x: p.x,
       y: p.y,
-      r: rand(0.6, 3.1),
+      r: isBright ? rand(1.4, 3.2) : rand(0.5, 1.6),
       vx: rand(-0.15, 0.15),
-      vy: rand(-0.32, -0.05),
+      vy: rand(-0.25, -0.02),
       baseAlpha,
+      isBright,
       twinklePhase: rand(0, Math.PI * 2),
-      twinkleSpeed: rand(0.008, 0.03),
+      twinkleSpeed: rand(0.005, 0.025),
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
     };
   }
 
   function init() {
-    particles = Array.from({ length: 220 }, mkParticle);
+    // Subimos a 750 partículas para que la distribución amplia no se sienta vacía
+    particles = Array.from({ length: 750 }, mkParticle);
   }
 
   function tick() {
     ctx.clearRect(0, 0, W, H);
     for (const p of particles) {
       p.twinklePhase += p.twinkleSpeed;
-      const flicker = 0.65 + 0.35 * Math.sin(p.twinklePhase);
+      const flicker = 0.6 + 0.4 * Math.sin(p.twinklePhase);
+      const alpha = (p.baseAlpha * flicker);
+
       ctx.beginPath();
+      if (p.isBright) {
+        ctx.shadowBlur = p.r * 3;
+        ctx.shadowColor = p.color + '0.8)';
+      } else {
+        ctx.shadowBlur = 0;
+      }
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = p.color + (p.baseAlpha * flicker).toFixed(3) + ')';
+      ctx.fillStyle = p.color + alpha.toFixed(3) + ')';
       ctx.fill();
+
       p.x += p.vx;
       p.y += p.vy;
       if (p.y < -10 || p.x < -10 || p.x > W + 10) {
         Object.assign(p, mkParticle());
       }
     }
+    ctx.shadowBlur = 0;
     requestAnimationFrame(tick);
   }
 
@@ -872,17 +903,15 @@ document.getElementById('eyeToggle').addEventListener('click', function () {
   }
 });
 
-/* Loading state on submit — actual auth handled by auth.js */
+/* Loading state on submit */
 document.getElementById('loginForm').addEventListener('submit', function () {
   const btn = document.getElementById('btnLogin');
   btn.classList.add('loading');
   btn.disabled = true;
-  /* auth.js resolves the promise and can call resetBtn() */
   window._resetLoginBtn = function () {
     btn.classList.remove('loading');
     btn.disabled = false;
   };
-  /* Fallback: re-enable after 8s */
   setTimeout(window._resetLoginBtn, 8000);
 });
 </script>

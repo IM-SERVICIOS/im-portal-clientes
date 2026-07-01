@@ -11,6 +11,13 @@
 
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/subir-documento.css">
+    <style>
+        /* Estilo mínimo y no intrusivo para los checkboxes de Acciones Administrativas.
+           Si ya tienes reglas propias para .campo-checkbox en subir-documento.css,
+           estas se pueden eliminar sin afectar el resto del formulario. */
+        .campo-checkbox label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .campo-checkbox input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+    </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -48,7 +55,7 @@
             <a href="documentos.html" class="nav-item">
                 <span class="nav-icon">🗂️</span> Documentos
             </a>
-            <a href="subir-documento.html" class="nav-item active admin-only">
+            <a href="subir-documento.html" class="nav-item active">
                 <span class="nav-icon">⬆️</span> Subir documento
             </a>
         </nav>
@@ -84,10 +91,10 @@
 
         <div class="dashboard-content subir-content">
 
-            <!-- Se muestra solo si el usuario NO es administrador -->
+            <!-- Se muestra solo si no se pudo verificar la cuenta del usuario (no existe en "usuarios" o hubo un error) -->
             <section id="bloqueSinPermiso" class="aviso-sin-permiso" style="display:none;">
-                <h2>No tienes permiso para ver esta página</h2>
-                <p>Subir documentos está disponible únicamente para cuentas de administrador. Si necesitas subir un archivo, pide a un administrador que lo haga o que te otorgue ese rol.</p>
+                <h2>No se pudo verificar tu cuenta</h2>
+                <p>No encontramos tu usuario en el sistema o hubo un problema al validar tu sesión. Contacta a un administrador para revisar tu acceso.</p>
                 <a href="dashboard.html" class="btn btn-primary">Volver al dashboard</a>
             </section>
 
@@ -170,6 +177,50 @@
                     <div class="campo">
                         <label for="campoSubidoPor">Subido por</label>
                         <input type="text" id="campoSubidoPor" readonly>
+                    </div>
+
+                </div>
+
+                <!-- Sección exclusiva para administradores. Se muestra/oculta desde subir-documento.js según el rol del usuario autenticado. -->
+                <div class="form-card" id="seccionAccionesAdmin" style="display:none;">
+
+                    <h2 class="form-card-titulo">4. Acciones Administrativas</h2>
+
+                    <div class="form-grid">
+
+                        <div class="campo campo-ancho campo-checkbox">
+                            <label>
+                                <input type="checkbox" id="chkGenerarDeclaracion">
+                                Generar registro en Declaraciones
+                            </label>
+                        </div>
+
+                        <div class="campo campo-ancho campo-checkbox">
+                            <label>
+                                <input type="checkbox" id="chkGenerarHonorario">
+                                Generar registro en Honorarios
+                            </label>
+                        </div>
+
+                        <!-- Campos condicionales, solo visibles si se activa "Generar registro en Honorarios" -->
+                        <div class="campo campo-ancho" id="campoConceptoHonorarioWrap" style="display:none;">
+                            <label for="campoConceptoHonorario">Concepto</label>
+                            <input type="text" id="campoConceptoHonorario" placeholder="Ej. Honorarios por presentación de declaración mayo 2026">
+                        </div>
+
+                        <div class="campo" id="campoMontoHonorarioWrap" style="display:none;">
+                            <label for="campoMontoHonorario">Monto</label>
+                            <input type="number" id="campoMontoHonorario" step="0.01" placeholder="0.00">
+                        </div>
+
+                        <div class="campo" id="campoEstadoHonorarioWrap" style="display:none;">
+                            <label for="campoEstadoHonorario">Estado inicial</label>
+                            <select id="campoEstadoHonorario">
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="Pagado">Pagado</option>
+                            </select>
+                        </div>
+
                     </div>
 
                 </div>

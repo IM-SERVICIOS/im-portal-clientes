@@ -280,7 +280,7 @@ function calcularPeriodoDesdeFormulario() {
 // =====================================================
 async function crearRegistroDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo }) {
   const fila = {
-    cliente_id:         Number(clienteId),
+    id_cliente:         Number(clienteId),
     ejercicio:          periodo.ejercicio,
     mes:                periodo.mesNombre,
     tipo_declaracion:   categoriaNombre,

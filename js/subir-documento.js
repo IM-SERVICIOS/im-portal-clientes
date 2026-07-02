@@ -1,4 +1,3 @@
-console.log("VERSION NUEVA DEL JS");
 // =====================================================
 // Subir documento - Portal de Clientes IM Servicios Contables
 // =====================================================
@@ -271,6 +270,24 @@ function calcularPeriodoDesdeFormulario() {
 }
 
 // =====================================================
+// Utilidad de depuración para errores de Supabase.
+// Centraliza el console.error de TODAS las operaciones (Storage,
+// Documentos, Declaraciones, Honorarios) mostrando siempre:
+//   - qué operación falló
+//   - qué datos se enviaron
+//   - la respuesta completa que devolvió Supabase
+// Así cada función de más abajo solo necesita llamar a esta utilidad
+// en lugar de escribir su propio console.error genérico.
+// =====================================================
+function registrarErrorSupabase(operacion, datosEnviados, respuesta) {
+  console.error(`[${operacion}] Falló la operación contra Supabase`, {
+    operacion,
+    datosEnviados,
+    respuesta,
+  });
+}
+
+// =====================================================
 // Inserta el registro en "declaraciones" a partir de los datos del
 // formulario de "Subir documento". Solo se llama si:
 //   1) el usuario autenticado es admin (verificado con datos de Supabase,
@@ -279,7 +296,7 @@ function calcularPeriodoDesdeFormulario() {
 // La protección definitiva contra usuarios no-admin vive en las
 // políticas RLS de Supabase (ver setup_acciones_administrativas.sql).
 // =====================================================
-async function crearRegistroDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo }) {
+async function crearDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo }) {
   const fila = {
     cliente_id:         Number(clienteId),
     ejercicio:          periodo.ejercicio,
@@ -293,7 +310,13 @@ async function crearRegistroDeclaracion({ clienteId, categoriaNombre, periodo, r
     creado_por:         usuarioActual.email,
   };
 
-  return supabaseClient.from('declaraciones').insert([fila]);
+  const respuesta = await supabaseClient.from('declaraciones').insert([fila]);
+
+  if (respuesta.error) {
+    registrarErrorSupabase('crearDeclaracion', fila, respuesta);
+  }
+
+  return respuesta;
 }
 
 // =====================================================
@@ -301,7 +324,7 @@ async function crearRegistroDeclaracion({ clienteId, categoriaNombre, periodo, r
 // anterior: solo se invoca si el usuario autenticado es admin y ya se
 // subió el documento correctamente.
 // =====================================================
-async function crearRegistroHonorario({ clienteId, periodo, honorario }) {
+async function crearHonorario({ clienteId, periodo, honorario }) {
   const esPagado = honorario.estado === 'Pagado';
 
   const fila = {
@@ -317,34 +340,54 @@ async function crearRegistroHonorario({ clienteId, periodo, honorario }) {
     creado_por:    usuarioActual.email,
   };
 
-  return supabaseClient.from('honorarios').insert([fila]);
+  const respuesta = await supabaseClient.from('honorarios').insert([fila]);
+
+  if (respuesta.error) {
+    registrarErrorSupabase('crearHonorario', fila, respuesta);
+  }
+
+  return respuesta;
+}
+
+// =====================================================
+// Decide si corresponde ejecutar Declaraciones/Honorarios y, de ser
+// así, con qué valores. Es una verificación en el frontend (defensa en
+// profundidad); la verificación real e infranqueable está en las
+// políticas RLS de Supabase. Devuelve `null` cuando no hay que
+// ejecutar nada (usuario no-admin o ninguna acción marcada), o el
+// objeto de acciones (ver obtenerAccionesAdministrativas) cuando sí.
+// =====================================================
+function validarAccionesAdministrador() {
+  if (!usuarioActual || !esRolExactoAdmin(usuarioActual.rol)) {
+    return null; // No es admin: no se intenta nada, sin mostrar error.
+  }
+
+  const acciones = obtenerAccionesAdministrativas();
+  if (!acciones.generar_declaracion && !acciones.generar_honorario) {
+    return null; // No se marcó ninguna acción.
+  }
+
+  return acciones;
 }
 
 // =====================================================
 // Orquesta la creación de Declaraciones/Honorarios según lo marcado
 // en "Acciones Administrativas". Devuelve un arreglo de mensajes de
-// error (vacío si todo salió bien) para que el submit los muestre.
+// error (vacío si todo salió bien) para que el flujo principal los
+// muestre. El detalle técnico de cada error ya quedó registrado por
+// crearDeclaracion()/crearHonorario() a través de registrarErrorSupabase().
 // =====================================================
 async function ejecutarAccionesAdministrativas({ clienteId, categoriaNombre, rutaArchivo }) {
   const errores = [];
 
-  // Segunda verificación de rol en el frontend (defensa en profundidad).
-  // La verificación real e infranqueable está en las políticas RLS.
-  if (!usuarioActual || !esRolExactoAdmin(usuarioActual.rol)) {
-    return errores; // No es admin: no se intenta nada, sin mostrar error.
-  }
-
-  const acciones = obtenerAccionesAdministrativas();
-  if (!acciones.generar_declaracion && !acciones.generar_honorario) {
-    return errores; // No se marcó ninguna acción.
-  }
+  const acciones = validarAccionesAdministrador();
+  if (!acciones) return errores;
 
   const periodo = calcularPeriodoDesdeFormulario();
 
   if (acciones.generar_declaracion) {
-    const { error } = await crearRegistroDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo });
+    const { error } = await crearDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo });
     if (error) {
-      console.error('Error creando registro en declaraciones:', error);
       errores.push(`No se pudo crear el registro en Declaraciones: ${error.message}`);
     }
   }
@@ -353,9 +396,8 @@ async function ejecutarAccionesAdministrativas({ clienteId, categoriaNombre, rut
     if (!acciones.honorario.monto || acciones.honorario.monto <= 0) {
       errores.push('No se creó el registro en Honorarios: el Monto es obligatorio y debe ser mayor a 0.');
     } else {
-      const { error } = await crearRegistroHonorario({ clienteId, periodo, honorario: acciones.honorario });
+      const { error } = await crearHonorario({ clienteId, periodo, honorario: acciones.honorario });
       if (error) {
-        console.error('Error creando registro en honorarios:', error);
         errores.push(`No se pudo crear el registro en Honorarios: ${error.message}`);
       }
     }
@@ -382,38 +424,27 @@ function rutaStorage(clienteId, categoria, file) {
   return `${clienteId}/${categoria}/${Date.now()}-${limpio}`;
 }
 
-formEl.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  mostrarMensaje('', '');
+// Sube el archivo al bucket privado de Storage. Si falla, registra el
+// error completo (operación + datos enviados + respuesta de Supabase)
+// para que se pueda depurar sin ambigüedad con otras operaciones.
+async function subirArchivoStorage(ruta, file) {
+  const datosEnviados = { bucket: BUCKET_DOCUMENTOS, ruta, nombreArchivo: file.name, tipoArchivo: file.type, tamañoBytes: file.size };
 
-  const file = campoArchivoEl.files[0];
-  if (!file) { mostrarMensaje('Selecciona un archivo antes de subir.', 'error'); return; }
-
-  btnSubirEl.disabled = true;
-  mostrarMensaje('Subiendo archivo al servidor seguro…', '');
-
-  const clienteId = campoClienteEl.value;
-  const categoria = campoCategoriaEl.value;
-  const ruta      = rutaStorage(clienteId, categoria, file);
-
-  // 1. Subir al bucket privado
-  const { error: errSubida } = await supabaseClient.storage
+  const respuesta = await supabaseClient.storage
     .from(BUCKET_DOCUMENTOS)
     .upload(ruta, file, { upsert: false });
 
-  if (errSubida) {
-    console.error('Error subiendo:', errSubida);
-    const msg = errSubida.message?.includes('Bucket not found')
-      ? 'No existe el bucket "documentos" en Supabase Storage. Créalo como privado y vuelve a intentar.'
-      : `Error al subir: ${errSubida.message}`;
-    mostrarMensaje(msg, 'error');
-    btnSubirEl.disabled = false;
-    return;
+  if (respuesta.error) {
+    registrarErrorSupabase('subirArchivoStorage', datosEnviados, respuesta);
   }
 
-  mostrarMensaje('Archivo subido. Guardando registro…', '');
+  return respuesta;
+}
 
-  // 2. Construir la fila con los nombres REALES de columna
+// Construye la fila con los nombres REALES de columna de "documentos"
+// (incluye los campos dinámicos según la categoría) e inserta el
+// registro. Si falla, registra el error completo para depuración.
+async function guardarDocumento({ clienteId, categoria, ruta }) {
   const fila = {
     cliente_id:     clienteId,           // nombre real en tu tabla
     tipo_documento: categoria,           // nombre real en tu tabla (también guardamos en "categoria" abajo)
@@ -434,26 +465,20 @@ formEl.addEventListener('submit', async (e) => {
     if (v !== '') fila[input.dataset.campoExtra] = input.type === 'number' ? Number(v) : v;
   });
 
-  const { error: errInsert } = await supabaseClient.from('documentos').insert([fila]);
+  const respuesta = await supabaseClient.from('documentos').insert([fila]);
 
-  btnSubirEl.disabled = false;
-
-  if (errInsert) {
-    console.error('Error guardando registro:', errInsert);
-    mostrarMensaje(`El archivo se subió a Storage pero no se pudo guardar el registro: ${errInsert.message}. Verifica que la tabla "documentos" tenga todas las columnas del ALTER TABLE.`, 'error');
-    return;
+  if (respuesta.error) {
+    registrarErrorSupabase('guardarDocumento', fila, respuesta);
   }
 
-  // Acciones Administrativas: SOLO se ejecutan si el documento ya se
-  // subió y se guardó correctamente (requisito 3). Si el rol no es admin,
-  // ejecutarAccionesAdministrativas() no hace nada (requisito 5).
-  const erroresAccionesAdmin = await ejecutarAccionesAdministrativas({
-    clienteId,
-    categoriaNombre: (CATEGORIAS.find(c => c.id === categoria) || {}).nombre || categoria,
-    rutaArchivo: ruta,
-  });
+  return { ...respuesta, fila };
+}
 
-  const clienteNombre = campoClienteEl.options[campoClienteEl.selectedIndex].text;
+// Muestra el mensaje final del formulario: éxito con enlace a
+// Documentos, o éxito del documento + advertencias puntuales si
+// Declaraciones/Honorarios tuvieron problemas (el documento igual se
+// subió correctamente, por eso no se trata como error genérico).
+function mostrarResultado({ clienteId, categoria, clienteNombre, erroresAccionesAdmin }) {
   let mensajeFinal =
     `Documento subido correctamente para <strong>${escaparHtml(clienteNombre)}</strong>. ` +
     `<a href="documentos.html?cliente_id=${encodeURIComponent(clienteId)}&categoria=${encodeURIComponent(categoria)}" style="color:inherit;text-decoration:underline;">Verlo en Documentos →</a>`;
@@ -466,12 +491,79 @@ formEl.addEventListener('submit', async (e) => {
   } else {
     mostrarMensaje(mensajeFinal, 'exito');
   }
+}
+
+// =====================================================
+// Coordina el flujo completo de "Subir documento":
+//   1. Subir archivo a Storage
+//   2. Guardar el registro en "documentos"
+//   3. Ejecutar Acciones Administrativas (Declaraciones/Honorarios)
+//   4. Mostrar el resultado y reiniciar el formulario
+// Cada paso usa su propia función especializada; procesarFormulario()
+// solo decide el orden y qué hacer con el resultado de cada uno.
+// Si falla Storage, se muestra ÚNICAMENTE el error de Storage.
+// Si falla Documentos, se muestra ÚNICAMENTE el error de Documentos.
+// Declaraciones/Honorarios nunca se ejecutan si los pasos 1 o 2 fallaron.
+// =====================================================
+async function procesarFormulario(file) {
+  const clienteId = campoClienteEl.value;
+  const categoria = campoCategoriaEl.value;
+  const ruta      = rutaStorage(clienteId, categoria, file);
+
+  // 1. Subir al bucket privado
+  mostrarMensaje('Subiendo archivo al servidor seguro…', '');
+  const { error: errSubida } = await subirArchivoStorage(ruta, file);
+
+  if (errSubida) {
+    const msg = errSubida.message?.includes('Bucket not found')
+      ? 'No existe el bucket "documentos" en Supabase Storage. Créalo como privado y vuelve a intentar.'
+      : `Error al subir: ${errSubida.message}`;
+    mostrarMensaje(msg, 'error');
+    return; // No se intenta nada más: ni guardar documento ni Acciones Administrativas.
+  }
+
+  // 2. Guardar el registro en "documentos"
+  mostrarMensaje('Archivo subido. Guardando registro…', '');
+  const { error: errInsert, fila } = await guardarDocumento({ clienteId, categoria, ruta });
+
+  if (errInsert) {
+    mostrarMensaje(`El archivo se subió a Storage pero no se pudo guardar el registro: ${errInsert.message}. Verifica que la tabla "documentos" tenga todas las columnas del ALTER TABLE.`, 'error');
+    return; // El archivo ya está en Storage, pero no se ejecutan Acciones Administrativas.
+  }
+
+  // 3. Acciones Administrativas: SOLO se ejecutan si el documento ya se
+  // subió y se guardó correctamente (requisito 3). Si el rol no es admin,
+  // ejecutarAccionesAdministrativas() no hace nada (requisito 5).
+  const erroresAccionesAdmin = await ejecutarAccionesAdministrativas({
+    clienteId,
+    categoriaNombre: (CATEGORIAS.find(c => c.id === categoria) || {}).nombre || categoria,
+    rutaArchivo: ruta,
+  });
+
+  // 4. Mostrar resultado y reiniciar el formulario
+  const clienteNombre = campoClienteEl.options[campoClienteEl.selectedIndex].text;
+  mostrarResultado({ clienteId, categoria, clienteNombre, erroresAccionesAdmin });
 
   formEl.reset();
   campoSubidoPorEl.value = fila.subido_por;
   campoFechaEl.value     = new Date().toISOString().slice(0, 10);
   actualizarCamposSegunCategoria();
   reiniciarAccionesAdministrativas();
+}
+
+formEl.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  mostrarMensaje('', '');
+
+  const file = campoArchivoEl.files[0];
+  if (!file) { mostrarMensaje('Selecciona un archivo antes de subir.', 'error'); return; }
+
+  btnSubirEl.disabled = true;
+  try {
+    await procesarFormulario(file);
+  } finally {
+    btnSubirEl.disabled = false;
+  }
 });
 
 // =====================================================

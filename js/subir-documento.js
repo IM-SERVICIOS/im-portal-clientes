@@ -171,16 +171,29 @@ async function inicializar() {
 // por defecto.
 // =====================================================
 function poblarSelectorAnio() {
-  if (!campoAnioEl) return;
+    const selectAnio = document.getElementById("campoAnio");
 
-  const anioActual = new Date().getFullYear();
-  const anios = [];
-  for (let a = anioActual - 5; a <= anioActual + 2; a++) anios.push(a);
+    if (!selectAnio) {
+        console.error("No se encontró el selector #campoAnio");
+        return;
+    }
 
-  campoAnioEl.innerHTML = anios.map(a => `<option value="${a}">${a}</option>`).join('');
-  campoAnioEl.value     = String(anioActual);
+    selectAnio.innerHTML = "";
+
+    const anioActual = new Date().getFullYear();
+
+    for (let anio = anioActual - 5; anio <= anioActual + 2; anio++) {
+        const option = document.createElement("option");
+        option.value = anio;
+        option.textContent = anio;
+
+        if (anio === anioActual) {
+            option.selected = true;
+        }
+
+        selectAnio.appendChild(option);
+    }
 }
-
 // =====================================================
 // Campos dinámicos por categoría
 // =====================================================

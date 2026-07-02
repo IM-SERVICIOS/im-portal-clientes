@@ -123,6 +123,14 @@
                             <label for="campoSubcategoria">Periodo *</label>
                             <select id="campoSubcategoria"></select>
                         </div>
+                        <!-- Año a usar para el período de Declaraciones/Honorarios (y como referencia
+                             general del período). Se llena dinámicamente desde subir-documento.js:
+                             año actual, 5 años anteriores y 2 años posteriores. Selecciona el año
+                             actual por defecto; el usuario puede cambiarlo. -->
+                        <div class="campo" id="campoAnioWrap">
+                            <label for="campoAnio">Año *</label>
+                            <select id="campoAnio" required></select>
+                        </div>
                     </div>
 
                 </div>

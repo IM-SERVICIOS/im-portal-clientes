@@ -37,6 +37,7 @@ const campoClienteEl            = document.getElementById('campoCliente');
 const campoCategoriaEl          = document.getElementById('campoCategoria');
 const campoSubcategoriaWrapEl   = document.getElementById('campoSubcategoriaWrap');
 const campoSubcategoriaEl       = document.getElementById('campoSubcategoria');
+const campoAnioEl               = document.getElementById('campoAnio');
 const campoNombreEl             = document.getElementById('campoNombre');
 const campoFechaEl              = document.getElementById('campoFecha');
 const campoEstatusEl            = document.getElementById('campoEstatus');
@@ -154,9 +155,30 @@ async function inicializar() {
   campoCategoriaEl.innerHTML  = CATEGORIAS.map(c => `<option value="${c.id}">${escaparHtml(c.nombre)}</option>`).join('');
   campoSubidoPorEl.value      = usuario.email;
   campoFechaEl.value          = new Date().toISOString().slice(0, 10);
+  poblarSelectorAnio();
 
   actualizarCamposSegunCategoria();
   formEl.style.display = 'flex';
+}
+
+// =====================================================
+// Selector de Año (junto al selector de Período)
+// Antes el "ejercicio" (año) para Declaraciones/Honorarios se tomaba
+// siempre de new Date().getFullYear() / de la fecha del documento, lo
+// que forzaba a registrar todo en el año en curso. Este selector
+// permite elegir el año a usar, y se llena con: año actual, 5 años
+// anteriores y 2 años posteriores. Queda seleccionado el año actual
+// por defecto.
+// =====================================================
+function poblarSelectorAnio() {
+  if (!campoAnioEl) return;
+
+  const anioActual = new Date().getFullYear();
+  const anios = [];
+  for (let a = anioActual - 5; a <= anioActual + 2; a++) anios.push(a);
+
+  campoAnioEl.innerHTML = anios.map(a => `<option value="${a}">${a}</option>`).join('');
+  campoAnioEl.value     = String(anioActual);
 }
 
 // =====================================================
@@ -250,10 +272,19 @@ function reiniciarAccionesAdministrativas() {
 // Si la categoría del documento agrupa por mes/semana y el usuario
 // eligió un mes en "Periodo", se usa ese mes; si no, se usa el mes de
 // la fecha del documento.
+// El año ("ejercicio") ahora se toma del selector de Año (junto al
+// selector de Período), no del año de la fecha del documento.
 // =====================================================
 function calcularPeriodoDesdeFormulario() {
   const valorFecha = campoFechaEl.value ? new Date(`${campoFechaEl.value}T00:00:00`) : new Date();
-  const ejercicio  = valorFecha.getFullYear();
+
+  // El año ("ejercicio") ahora viene del selector de Año elegido por el
+  // usuario, no del año de la fecha del documento. Si por alguna razón
+  // el selector no existe o no tiene valor (compatibilidad), se usa
+  // el año de la fecha como respaldo, igual que antes.
+  const anioSeleccionado = campoAnioEl && campoAnioEl.value ? parseInt(campoAnioEl.value, 10) : NaN;
+  const ejercicio  = Number.isFinite(anioSeleccionado) ? anioSeleccionado : valorFecha.getFullYear();
+
   let mesNumero    = valorFecha.getMonth() + 1; // 1-12, por defecto según la fecha
 
   const categoriaActual = CATEGORIAS.find(c => c.id === campoCategoriaEl.value);
@@ -547,6 +578,7 @@ async function procesarFormulario(file) {
   formEl.reset();
   campoSubidoPorEl.value = fila.subido_por;
   campoFechaEl.value     = new Date().toISOString().slice(0, 10);
+  poblarSelectorAnio();
   actualizarCamposSegunCategoria();
   reiniciarAccionesAdministrativas();
 }

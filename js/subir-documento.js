@@ -414,7 +414,7 @@ formEl.addEventListener('submit', async (e) => {
 
   // 2. Construir la fila con los nombres REALES de columna
   const fila = {
-    id_cliente:     clienteId,           // nombre real en tu tabla
+    cliente_id:     clienteId,           // nombre real en tu tabla
     tipo_documento: categoria,           // nombre real en tu tabla (también guardamos en "categoria" abajo)
     nombre_archivo: campoNombreEl.value.trim(),  // nombre real en tu tabla
     url_archivo:    ruta,                // guardamos la RUTA, no la URL pública

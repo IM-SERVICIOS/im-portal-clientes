@@ -22,42 +22,49 @@
 
 const BUCKET_DOCUMENTOS = 'documentos';
 
+// --- Referencias del DOM que existen siempre, independientemente del
+// rol o de si el formulario llega a mostrarse (encabezado, estados de
+// carga y bloqueo). Se obtienen una sola vez al cargar el script. ---
 const nombreUsuarioEl       = document.getElementById('nombreUsuario');
 const rolUsuarioEl          = document.getElementById('rolUsuario');
 const avatarUsuarioEl       = document.getElementById('avatarUsuario');
 const dashboardShellEl      = document.getElementById('dashboardShell');
 const sidebarOverlayEl      = document.getElementById('sidebarOverlay');
 const btnMenuMovilEl        = document.getElementById('btnMenuMovil');
+const btnCerrarSesionEl     = document.getElementById('btnCerrarSesion');
 
 const estadoCargaPermisoEl  = document.getElementById('estadoCargaPermiso');
 const bloqueSinPermisoEl    = document.getElementById('bloqueSinPermiso');
 const formEl                = document.getElementById('formSubirDocumento');
+const mensajeFormularioEl   = document.getElementById('mensajeFormulario');
+const seccionAccionesAdminEl = document.getElementById('seccionAccionesAdmin');
 
-const campoClienteEl            = document.getElementById('campoCliente');
-const campoCategoriaEl          = document.getElementById('campoCategoria');
-const campoSubcategoriaWrapEl   = document.getElementById('campoSubcategoriaWrap');
-const campoSubcategoriaEl       = document.getElementById('campoSubcategoria');
-const campoAnioEl               = document.getElementById('campoAnio');
-const campoNombreEl             = document.getElementById('campoNombre');
-const campoFechaEl              = document.getElementById('campoFecha');
-const campoEstatusEl            = document.getElementById('campoEstatus');
-const campoObservacionesEl      = document.getElementById('campoObservaciones');
-const camposExtraContainerEl    = document.getElementById('camposExtraContainer');
-const campoArchivoEl            = document.getElementById('campoArchivo');
-const campoSubidoPorEl          = document.getElementById('campoSubidoPor');
-const btnSubirEl                = document.getElementById('btnSubir');
-const mensajeFormularioEl       = document.getElementById('mensajeFormulario');
+// --- Referencias del DOM propias del formulario (campos, selectores y
+// Acciones Administrativas). Se obtienen explícitamente en
+// obtenerReferenciasDOM(), como parte del flujo de inicializar(), en
+// lugar de asumirse disponibles al cargar el script. ---
+let campoClienteEl;
+let campoCategoriaEl;
+let campoSubcategoriaWrapEl;
+let campoSubcategoriaEl;
+let campoAnioEl;
+let campoNombreEl;
+let campoFechaEl;
+let campoEstatusEl;
+let campoObservacionesEl;
+let camposExtraContainerEl;
+let campoArchivoEl;
+let campoSubidoPorEl;
+let btnSubirEl;
 
-// --- Acciones Administrativas (solo rol "admin") ---
-const seccionAccionesAdminEl       = document.getElementById('seccionAccionesAdmin');
-const chkGenerarDeclaracionEl      = document.getElementById('chkGenerarDeclaracion');
-const chkGenerarHonorarioEl        = document.getElementById('chkGenerarHonorario');
-const campoMontoHonorarioWrapEl    = document.getElementById('campoMontoHonorarioWrap');
-const campoMontoHonorarioEl        = document.getElementById('campoMontoHonorario');
-const campoConceptoHonorarioWrapEl = document.getElementById('campoConceptoHonorarioWrap');
-const campoConceptoHonorarioEl     = document.getElementById('campoConceptoHonorario');
-const campoEstadoHonorarioWrapEl   = document.getElementById('campoEstadoHonorarioWrap');
-const campoEstadoHonorarioEl       = document.getElementById('campoEstadoHonorario');
+let chkGenerarDeclaracionEl;
+let chkGenerarHonorarioEl;
+let campoMontoHonorarioWrapEl;
+let campoMontoHonorarioEl;
+let campoConceptoHonorarioWrapEl;
+let campoConceptoHonorarioEl;
+let campoEstadoHonorarioWrapEl;
+let campoEstadoHonorarioEl;
 
 // Usuario autenticado actual (se llena en inicializar()). Se usa como
 // segunda capa de protección en el frontend para las Acciones
@@ -108,92 +115,226 @@ function mostrarMensaje(texto, tipo) {
 }
 
 // =====================================================
-// Verificación de sesión y rol administrador
+// INICIALIZACIÓN DEL MÓDULO
+// =====================================================
+// Punto de entrada único. Controla todo el arranque de la página en
+// un flujo lineal y explícito, sin duplicaciones ni condiciones de
+// carrera con el DOM:
+//   1.  Verificar sesión
+//   2.  Obtener usuario autenticado
+//   3.  Obtener rol
+//   4.  Mostrar datos del usuario
+//   5.  Configurar permisos según el rol
+//   6.  Obtener referencias del DOM propias del formulario
+//   7.  Inicializar selectores del formulario
+//   8.  Poblar selector de Año
+//   9.  Poblar selector de Periodo
+//   10. Cargar clientes
+//   11. Cargar categorías
+//   12. Registrar EventListeners
+//   13. Mostrar el formulario listo
 // =====================================================
 async function inicializar() {
+  // 1. Verificar sesión
   const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
-
-  const { data: usuario, error } = await supabaseClient
-    .from('usuarios').select('id, email, rol')
-    .eq('auth_user_id', session.user.id).single();
-
-  estadoCargaPermisoEl.style.display = 'none';
-
-  if (error || !usuario) { bloqueSinPermisoEl.style.display = 'block'; return; }
-
-  nombreUsuarioEl.textContent = usuario.email;
-  rolUsuarioEl.textContent    = usuario.rol;
-  if (avatarUsuarioEl) avatarUsuarioEl.textContent = generarIniciales(usuario.email);
-
-  usuarioActual = usuario;
-
-  // Cualquier rol autenticado y válido (admin, supervisor, cliente) puede
-  // usar el formulario de "Subir documento". Ya NO se bloquea por rol aquí;
-  // el bloqueo previo (bloqueSinPermiso) ahora solo aplica si no se encontró
-  // el usuario en la tabla "usuarios" (ver arriba: error || !usuario).
-
-  // "Acciones Administrativas" (Declaraciones/Honorarios) sigue siendo
-  // exclusiva del rol "admin". Para todos los demás roles la sección
-  // permanece oculta y no puede afectar esas tablas.
-  const esAdministrador = esRolExactoAdmin(usuario.rol);
-  if (dashboardShellEl) dashboardShellEl.classList.toggle('es-admin', esAdministrador);
-
-  if (seccionAccionesAdminEl) {
-    seccionAccionesAdminEl.style.display = esAdministrador ? 'block' : 'none';
-  }
-
-  const { data: clientes, error: errClientes } = await supabaseClient
-    .from('clientes').select('id, nombre').eq('activo', true).order('nombre');
-
-  if (errClientes || !clientes?.length) {
-    mostrarMensaje('No se pudieron cargar los clientes. Verifica la conexión con Supabase.', 'error');
+  if (!session) {
+    window.location.href = 'index.html';
     return;
   }
 
-  campoClienteEl.innerHTML    = clientes.map(c => `<option value="${c.id}">${escaparHtml(c.nombre)}</option>`).join('');
-  campoCategoriaEl.innerHTML  = CATEGORIAS.map(c => `<option value="${c.id}">${escaparHtml(c.nombre)}</option>`).join('');
-  campoSubidoPorEl.value      = usuario.email;
-  campoFechaEl.value          = new Date().toISOString().slice(0, 10);
-  poblarSelectorAnio();
+  // 2. Obtener usuario autenticado / 3. Obtener rol
+  const { data: usuario, error } = await supabaseClient
+    .from('usuarios')
+    .select('id, email, rol')
+    .eq('auth_user_id', session.user.id)
+    .single();
 
-  actualizarCamposSegunCategoria();
-  formEl.style.display = 'flex';
+  estadoCargaPermisoEl.style.display = 'none';
+
+  if (error || !usuario) {
+    bloqueSinPermisoEl.style.display = 'block';
+    return;
+  }
+
+  usuarioActual = usuario;
+
+  // 4. Mostrar datos del usuario
+  mostrarDatosUsuario(usuario);
+
+  // 5. Configurar permisos según el rol
+  configurarPermisosPorRol(usuario.rol);
+
+  // 6. Obtener referencias del DOM propias del formulario
+  obtenerReferenciasDOM();
+
+  // 7-12. Inicializar selectores, cargar catálogos y registrar eventos
+  const formularioListo = await inicializarFormulario();
+
+  // 13. Mostrar el formulario listo
+  if (formularioListo) {
+    formEl.style.display = 'flex';
+  }
+}
+
+// Paso 4: pinta en el encabezado los datos del usuario autenticado.
+function mostrarDatosUsuario(usuario) {
+  nombreUsuarioEl.textContent = usuario.email;
+  rolUsuarioEl.textContent    = usuario.rol;
+  if (avatarUsuarioEl) avatarUsuarioEl.textContent = generarIniciales(usuario.email);
+}
+
+// Paso 5: aplica las reglas de visibilidad según el rol.
+// Cualquier rol autenticado y válido (admin, supervisor, cliente) puede
+// usar el formulario de "Subir documento"; el bloqueo por falta de
+// permiso (bloqueSinPermiso) solo aplica si no se encontró el usuario
+// en la tabla "usuarios" (ver inicializar()).
+// "Acciones Administrativas" (Declaraciones/Honorarios) sigue siendo
+// exclusiva del rol "admin". Para todos los demás roles la sección
+// permanece oculta y no puede afectar esas tablas. La protección
+// definitiva vive en las políticas RLS de Supabase.
+function configurarPermisosPorRol(rol) {
+  const esAdministrador = esRolExactoAdmin(rol);
+
+  if (dashboardShellEl) dashboardShellEl.classList.toggle('es-admin', esAdministrador);
+  if (seccionAccionesAdminEl) seccionAccionesAdminEl.style.display = esAdministrador ? 'block' : 'none';
+}
+
+// Paso 6: localiza todos los campos del formulario. Se hace de forma
+// explícita y en un único lugar para que cualquier reconstrucción del
+// formulario solo requiera volver a llamar a esta función.
+function obtenerReferenciasDOM() {
+  campoClienteEl          = document.getElementById('campoCliente');
+  campoCategoriaEl        = document.getElementById('campoCategoria');
+  campoSubcategoriaWrapEl = document.getElementById('campoSubcategoriaWrap');
+  campoSubcategoriaEl     = document.getElementById('campoSubcategoria');
+  campoAnioEl             = document.getElementById('campoAnio');
+  campoNombreEl           = document.getElementById('campoNombre');
+  campoFechaEl            = document.getElementById('campoFecha');
+  campoEstatusEl          = document.getElementById('campoEstatus');
+  campoObservacionesEl    = document.getElementById('campoObservaciones');
+  camposExtraContainerEl  = document.getElementById('camposExtraContainer');
+  campoArchivoEl          = document.getElementById('campoArchivo');
+  campoSubidoPorEl        = document.getElementById('campoSubidoPor');
+  btnSubirEl              = document.getElementById('btnSubir');
+
+  chkGenerarDeclaracionEl      = document.getElementById('chkGenerarDeclaracion');
+  chkGenerarHonorarioEl        = document.getElementById('chkGenerarHonorario');
+  campoMontoHonorarioWrapEl    = document.getElementById('campoMontoHonorarioWrap');
+  campoMontoHonorarioEl        = document.getElementById('campoMontoHonorario');
+  campoConceptoHonorarioWrapEl = document.getElementById('campoConceptoHonorarioWrap');
+  campoConceptoHonorarioEl     = document.getElementById('campoConceptoHonorario');
+  campoEstadoHonorarioWrapEl   = document.getElementById('campoEstadoHonorarioWrap');
+  campoEstadoHonorarioEl       = document.getElementById('campoEstadoHonorario');
+}
+
+// Pasos 7-12: prepara por completo el formulario. Es la única función
+// responsable de dejarlo listo para usarse. Devuelve `true` si todo
+// se cargó correctamente, o `false` si hubo un error que impide
+// mostrar el formulario (por ejemplo, no se pudieron cargar clientes).
+async function inicializarFormulario() {
+  // 7-9. Selectores propios del formulario (Año y Periodo)
+  inicializarSelectorAnio();
+  inicializarSelectorPeriodo();
+
+  // 10. Cargar clientes
+  const clientesCargados = await cargarClientes();
+  if (!clientesCargados) return false;
+
+  // 11. Cargar categorías (y sincronizar Periodo/campos extra con la
+  // categoría seleccionada por defecto)
+  cargarCategorias();
+
+  // 12. Registrar EventListeners
+  registrarEventos();
+
+  // Valores por defecto del formulario
+  campoSubidoPorEl.value = usuarioActual.email;
+  campoFechaEl.value     = new Date().toISOString().slice(0, 10);
+
+  return true;
 }
 
 // =====================================================
 // Selector de Año (junto al selector de Período)
-// Antes el "ejercicio" (año) para Declaraciones/Honorarios se tomaba
-// siempre de new Date().getFullYear() / de la fecha del documento, lo
-// que forzaba a registrar todo en el año en curso. Este selector
-// permite elegir el año a usar, y se llena con: año actual, 5 años
-// anteriores y 2 años posteriores. Queda seleccionado el año actual
-// por defecto.
+// El "ejercicio" (año) para Declaraciones/Honorarios ya no se toma de
+// new Date().getFullYear(): el usuario lo elige aquí. Se muestran el
+// año actual, 5 años anteriores y 2 posteriores, con el año actual
+// seleccionado por defecto.
+// Localiza el elemento nuevamente y limpia su contenido antes de
+// generar las opciones, por lo que puede volver a ejecutarse en
+// cualquier momento (por ejemplo, tras reconstruir el formulario) sin
+// duplicar opciones.
 // =====================================================
-function poblarSelectorAnio() {
-    const selectAnio = document.getElementById("campoAnio");
+function inicializarSelectorAnio() {
+  const selectorAnio = document.getElementById('campoAnio');
+  if (!selectorAnio) return;
 
-    if (!selectAnio) {
-        console.error("No se encontró el selector #campoAnio");
-        return;
-    }
+  selectorAnio.innerHTML = '';
 
-    selectAnio.innerHTML = "";
+  const anioActual = new Date().getFullYear();
+  const fragmento   = document.createDocumentFragment();
 
-    const anioActual = new Date().getFullYear();
+  for (let anio = anioActual - 5; anio <= anioActual + 2; anio++) {
+    const opcion = document.createElement('option');
+    opcion.value = String(anio);
+    opcion.textContent = String(anio);
+    fragmento.appendChild(opcion);
+  }
 
-    for (let anio = anioActual - 5; anio <= anioActual + 2; anio++) {
-        const option = document.createElement("option");
-        option.value = anio;
-        option.textContent = anio;
+  selectorAnio.appendChild(fragmento);
+  selectorAnio.value = String(anioActual);
 
-        if (anio === anioActual) {
-            option.selected = true;
-        }
-
-        selectAnio.appendChild(option);
-    }
+  campoAnioEl = selectorAnio;
 }
+
+// =====================================================
+// Selector de Periodo (campo "Periodo", ligado a la categoría)
+// Deja el selector en su estado inicial: vacío, oculto y no
+// obligatorio. Las opciones reales (meses o semanas) dependen de la
+// categoría elegida y se generan en actualizarCamposSegunCategoria(),
+// que se ejecuta al cargar las categorías y cada vez que el usuario
+// cambia de categoría.
+// =====================================================
+function inicializarSelectorPeriodo() {
+  const selectorPeriodo = document.getElementById('campoSubcategoria');
+  const wrapPeriodo     = document.getElementById('campoSubcategoriaWrap');
+  if (!selectorPeriodo) return;
+
+  selectorPeriodo.innerHTML = '';
+  selectorPeriodo.required  = false;
+  if (wrapPeriodo) wrapPeriodo.style.display = 'none';
+
+  campoSubcategoriaEl     = selectorPeriodo;
+  campoSubcategoriaWrapEl = wrapPeriodo;
+}
+
+// Paso 10: carga los clientes activos y los coloca en el selector.
+// Devuelve `true`/`false` según el resultado, para que
+// inicializarFormulario() decida si el formulario puede mostrarse.
+async function cargarClientes() {
+  const { data: clientes, error } = await supabaseClient
+    .from('clientes')
+    .select('id, nombre')
+    .eq('activo', true)
+    .order('nombre');
+
+  if (error || !clientes?.length) {
+    mostrarMensaje('No se pudieron cargar los clientes. Verifica la conexión con Supabase.', 'error');
+    return false;
+  }
+
+  campoClienteEl.innerHTML = clientes.map(c => `<option value="${c.id}">${escaparHtml(c.nombre)}</option>`).join('');
+  return true;
+}
+
+// Paso 11: carga las categorías fijas del catálogo y sincroniza los
+// campos que dependen de la categoría seleccionada por defecto
+// (Periodo y campos extra).
+function cargarCategorias() {
+  campoCategoriaEl.innerHTML = CATEGORIAS.map(c => `<option value="${c.id}">${escaparHtml(c.nombre)}</option>`).join('');
+  actualizarCamposSegunCategoria();
+}
+
 // =====================================================
 // Campos dinámicos por categoría
 // =====================================================
@@ -222,30 +363,29 @@ function actualizarCamposSegunCategoria() {
     </div>`).join('');
 }
 
-campoCategoriaEl.addEventListener('change', actualizarCamposSegunCategoria);
-
 // =====================================================
 // Acciones Administrativas (solo admin)
 // Genera automáticamente registros en "declaraciones" y/o "honorarios"
 // al terminar de subir el documento. Ver ejecutarAccionesAdministrativas()
 // más abajo para el flujo completo y las validaciones de seguridad.
 // =====================================================
-if (chkGenerarHonorarioEl) {
-  chkGenerarHonorarioEl.addEventListener('change', () => {
-    const mostrar = chkGenerarHonorarioEl.checked;
-    if (campoConceptoHonorarioWrapEl) campoConceptoHonorarioWrapEl.style.display = mostrar ? 'flex' : 'none';
-    if (campoMontoHonorarioWrapEl)    campoMontoHonorarioWrapEl.style.display    = mostrar ? 'flex' : 'none';
-    if (campoEstadoHonorarioWrapEl)   campoEstadoHonorarioWrapEl.style.display   = mostrar ? 'flex' : 'none';
 
-    // El monto es obligatorio solo cuando se va a generar el honorario.
-    if (campoMontoHonorarioEl) campoMontoHonorarioEl.required = mostrar;
+// Handler del checkbox "Generar registro en Honorarios": muestra u
+// oculta sus campos condicionales.
+function manejarCambioGenerarHonorario() {
+  const mostrar = chkGenerarHonorarioEl.checked;
+  if (campoConceptoHonorarioWrapEl) campoConceptoHonorarioWrapEl.style.display = mostrar ? 'flex' : 'none';
+  if (campoMontoHonorarioWrapEl)    campoMontoHonorarioWrapEl.style.display    = mostrar ? 'flex' : 'none';
+  if (campoEstadoHonorarioWrapEl)   campoEstadoHonorarioWrapEl.style.display   = mostrar ? 'flex' : 'none';
 
-    if (!mostrar) {
-      if (campoConceptoHonorarioEl) campoConceptoHonorarioEl.value = '';
-      if (campoMontoHonorarioEl)    campoMontoHonorarioEl.value    = '';
-      if (campoEstadoHonorarioEl)   campoEstadoHonorarioEl.value   = 'Pendiente';
-    }
-  });
+  // El monto es obligatorio solo cuando se va a generar el honorario.
+  if (campoMontoHonorarioEl) campoMontoHonorarioEl.required = mostrar;
+
+  if (!mostrar) {
+    if (campoConceptoHonorarioEl) campoConceptoHonorarioEl.value = '';
+    if (campoMontoHonorarioEl)    campoMontoHonorarioEl.value    = '';
+    if (campoEstadoHonorarioEl)   campoEstadoHonorarioEl.value   = 'Pendiente';
+  }
 }
 
 // Devuelve un objeto con los valores elegidos en "Acciones Administrativas".
@@ -285,16 +425,15 @@ function reiniciarAccionesAdministrativas() {
 // Si la categoría del documento agrupa por mes/semana y el usuario
 // eligió un mes en "Periodo", se usa ese mes; si no, se usa el mes de
 // la fecha del documento.
-// El año ("ejercicio") ahora se toma del selector de Año (junto al
-// selector de Período), no del año de la fecha del documento.
+// El año ("ejercicio") se toma del selector de Año (junto al selector
+// de Período), no del año de la fecha del documento.
 // =====================================================
 function calcularPeriodoDesdeFormulario() {
   const valorFecha = campoFechaEl.value ? new Date(`${campoFechaEl.value}T00:00:00`) : new Date();
 
-  // El año ("ejercicio") ahora viene del selector de Año elegido por el
-  // usuario, no del año de la fecha del documento. Si por alguna razón
-  // el selector no existe o no tiene valor (compatibilidad), se usa
-  // el año de la fecha como respaldo, igual que antes.
+  // El año ("ejercicio") viene del selector de Año elegido por el
+  // usuario. Si por alguna razón no tiene valor (compatibilidad), se
+  // usa el año de la fecha como respaldo.
   const anioSeleccionado = campoAnioEl && campoAnioEl.value ? parseInt(campoAnioEl.value, 10) : NaN;
   const ejercicio  = Number.isFinite(anioSeleccionado) ? anioSeleccionado : valorFecha.getFullYear();
 
@@ -312,7 +451,6 @@ function calcularPeriodoDesdeFormulario() {
     mesNombre: ORDEN_MESES[mesNumero - 1], // para declaraciones.mes (varchar)
   };
 }
-
 // =====================================================
 // Utilidad de depuración para errores de Supabase.
 // Centraliza el console.error de TODAS las operaciones (Storage,
@@ -456,13 +594,6 @@ async function ejecutarAccionesAdministrativas({ clienteId, categoriaNombre, rut
 //   id_cliente, tipo_documento, nombre_archivo, url_archivo
 //   + columnas enriquecidas con ALTER TABLE
 // =====================================================
-function tipoDesdeArchivo(file) {
-  if (!file) return 'Documento';
-  if (file.type === 'application/pdf') return 'PDF';
-  if (file.type.startsWith('image/')) return 'Imagen';
-  return file.name.split('.').pop().toUpperCase();
-}
-
 function rutaStorage(clienteId, categoria, file) {
   const limpio = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   return `${clienteId}/${categoria}/${Date.now()}-${limpio}`;
@@ -591,12 +722,15 @@ async function procesarFormulario(file) {
   formEl.reset();
   campoSubidoPorEl.value = fila.subido_por;
   campoFechaEl.value     = new Date().toISOString().slice(0, 10);
-  poblarSelectorAnio();
+  inicializarSelectorAnio();
   actualizarCamposSegunCategoria();
   reiniciarAccionesAdministrativas();
 }
 
-formEl.addEventListener('submit', async (e) => {
+// Handler del envío del formulario: valida el archivo, bloquea el
+// botón mientras se procesa y delega todo el trabajo en
+// procesarFormulario().
+async function manejarEnvioFormulario(e) {
   e.preventDefault();
   mostrarMensaje('', '');
 
@@ -609,17 +743,28 @@ formEl.addEventListener('submit', async (e) => {
   } finally {
     btnSubirEl.disabled = false;
   }
-});
+}
 
-// =====================================================
-// Sesión y menú móvil
-// =====================================================
-document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
+// Cierra la sesión y regresa a la pantalla de acceso.
+async function cerrarSesion() {
   await supabaseClient.auth.signOut();
   window.location.href = 'index.html';
-});
+}
 
-if (btnMenuMovilEl) btnMenuMovilEl.addEventListener('click', () => dashboardShellEl.classList.toggle('menu-abierto'));
-if (sidebarOverlayEl) sidebarOverlayEl.addEventListener('click', () => dashboardShellEl.classList.remove('menu-abierto'));
+// Paso 12: registra, en un único lugar, todos los EventListeners del
+// módulo. Se llama una sola vez desde inicializarFormulario().
+function registrarEventos() {
+  campoCategoriaEl.addEventListener('change', actualizarCamposSegunCategoria);
+
+  if (chkGenerarHonorarioEl) {
+    chkGenerarHonorarioEl.addEventListener('change', manejarCambioGenerarHonorario);
+  }
+
+  formEl.addEventListener('submit', manejarEnvioFormulario);
+
+  if (btnCerrarSesionEl) btnCerrarSesionEl.addEventListener('click', cerrarSesion);
+  if (btnMenuMovilEl)    btnMenuMovilEl.addEventListener('click', () => dashboardShellEl.classList.toggle('menu-abierto'));
+  if (sidebarOverlayEl)  sidebarOverlayEl.addEventListener('click', () => dashboardShellEl.classList.remove('menu-abierto'));
+}
 
 inicializar();

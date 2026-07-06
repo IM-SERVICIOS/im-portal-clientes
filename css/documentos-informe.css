@@ -106,16 +106,17 @@
   .informe-hoja { animation: none; }
 }
 
-/* Marca de agua: logo institucional, muy grande, muy tenue, centrado */
+/* Marca de agua: insignia institucional, muy grande, muy tenue, centrada.
+   Archivo: assets/insignia.svg (ver instrucciones de instalación). */
 .informe-marca-agua {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image: url('assets/logo.png');
+  background-image: url('assets/insignia.svg');
   background-repeat: no-repeat;
-  background-position: center 60%;
-  background-size: 480px;
-  opacity: 0.05;
+  background-position: center 58%;
+  background-size: 520px;
+  opacity: 0.06;
   pointer-events: none;
 }
 
@@ -133,16 +134,16 @@
   border-bottom: 1px solid var(--inf-gris-borde);
 }
 .informe-logo-lateral {
-  width: 46px;
-  height: 46px;
+  width: 68px;
+  height: 68px;
   object-fit: contain;
-  opacity: 0.18;
+  opacity: 0.32;
   flex: 0 0 auto;
 }
 .informe-header-centro { text-align: center; }
 .informe-logo-centro {
-  width: 54px;
-  height: 54px;
+  width: 84px;
+  height: 84px;
   object-fit: contain;
   margin: 0 auto 10px;
   display: block;
@@ -360,5 +361,5 @@
   .informe-seccion-cuerpo { grid-template-columns: 1fr; }
   .informe-fila { flex-direction: column; gap: 2px; }
   .informe-valor { text-align: left; }
-  .informe-marca-agua { background-size: 300px; }
+  .informe-marca-agua { background-size: 320px; }
 }

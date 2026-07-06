@@ -203,6 +203,35 @@
                             </label>
                         </div>
 
+                        <!-- Campos condicionales, solo visibles si se activa "Generar registro en Declaraciones" -->
+                        <div class="campo" id="campoEstatusSatWrap" style="display:none;">
+                            <label for="campoEstatusSat">Estatus de la declaración</label>
+                            <input type="text" id="campoEstatusSat" list="listaEstatusSat" placeholder="Ej. Presentada, Pagada, Pendiente...">
+                            <datalist id="listaEstatusSat">
+                                <option value="Presentada"></option>
+                                <option value="Presentada sin pago"></option>
+                                <option value="Pagada"></option>
+                                <option value="Pendiente de pago"></option>
+                                <option value="No presentada"></option>
+                                <option value="Vencida"></option>
+                            </datalist>
+                        </div>
+
+                        <div class="campo" id="campoMontoPagadoWrap" style="display:none;">
+                            <label for="campoMontoPagado">Monto pagado</label>
+                            <input type="number" id="campoMontoPagado" step="0.01" placeholder="0.00">
+                        </div>
+
+                        <div class="campo" id="campoIsrWrap" style="display:none;">
+                            <label for="campoIsr">ISR</label>
+                            <input type="number" id="campoIsr" step="0.01" placeholder="0.00">
+                        </div>
+
+                        <div class="campo" id="campoIvaWrap" style="display:none;">
+                            <label for="campoIva">IVA</label>
+                            <input type="number" id="campoIva" step="0.01" placeholder="0.00">
+                        </div>
+
                         <div class="campo campo-ancho campo-checkbox">
                             <label>
                                 <input type="checkbox" id="chkGenerarHonorario">

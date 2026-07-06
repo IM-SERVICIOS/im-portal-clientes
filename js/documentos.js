@@ -57,8 +57,11 @@ const modalEl           = document.getElementById('modalVistaPrevia');
 const modalTituloEl     = document.getElementById('modalTitulo');
 const modalSubtituloEl  = document.getElementById('modalSubtitulo');
 const modalIframeEl     = document.getElementById('modalIframe');
+const modalInformeEl    = document.getElementById('modalInforme');
 const modalDescargarEl  = document.getElementById('modalDescargar');
 const modalCerrarEl     = document.getElementById('modalCerrar');
+const btnModalImprimirEl         = document.getElementById('btnModalImprimir');
+const btnModalPantallaCompletaEl = document.getElementById('btnModalPantallaCompleta');
 
 // =====================================================
 // Catálogo de categorías
@@ -101,6 +104,12 @@ function formatearFecha(iso) {
   const d = new Date(iso + 'T00:00:00');
   if (isNaN(d)) return iso;
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function formatearFechaHora(timestamp) {
+  if (!timestamp) return null;
+  const d = new Date(timestamp);
+  if (isNaN(d)) return null;
+  return d.toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 function esReciente(iso) {
   if (!iso) return false;
@@ -162,6 +171,10 @@ function normalizarFila(fila) {
     referencia:    fila.referencia    ?? null,
     monto:         fila.monto         ?? null,
     impuesto:      fila.impuesto      ?? null,
+    // Se expone para "Fecha de carga" en la sección de Validación del
+    // nuevo Informe Oficial. La columna ya existía y ya se traía con
+    // select('*'); no es una consulta nueva, solo se lee este campo.
+    fecha_subida:  fila.fecha_subida  ?? null,
   };
 }
 
@@ -431,6 +444,181 @@ function periodoAnioTexto(d) {
   return anio || '';
 }
 
+// =====================================================================
+// INFORME OFICIAL DEL DOCUMENTO (vista previa rediseñada)
+// =====================================================================
+// Todo lo de aquí abajo es exclusivamente presentación: construye el
+// HTML del "expediente digital" que se muestra dentro del modal. No
+// hace consultas a Supabase ni decide permisos; solo formatea los
+// datos que ya trae "doc" (mismo objeto normalizado de siempre).
+// =====================================================================
+
+// Etiquetas por defecto de cada campo dentro del informe.
+const ETIQUETAS_DEFECTO = {
+  tipo: 'Tipo', fecha: 'Fecha', estatus: 'Estatus', subcategoria: 'Periodo',
+  responsable: 'Responsable', servicio: 'Servicio', vigencia: 'Vigencia',
+  metodo_pago: 'Método de pago', referencia: 'Referencia',
+  importe: 'Importe', monto: 'Monto', impuesto: 'Impuesto',
+};
+
+// Algunas categorías usan los mismos campos con otro significado
+// (ej. en "pagos_im" el campo "impuesto" se usa como IVA y "servicio"
+// como concepto del honorario). Se ajustan solo las etiquetas, los
+// datos siguen siendo los mismos que ya guarda "documentos".
+const ETIQUETAS_POR_CATEGORIA = {
+  pagos_im:            { servicio: 'Concepto', monto: 'Monto', impuesto: 'IVA', fecha: 'Fecha de emisión' },
+  presupuestos:        { servicio: 'Concepto', importe: 'Monto' },
+  pagos_declaraciones: { fecha: 'Fecha de pago', importe: 'Importe', impuesto: 'Impuesto' },
+  acuses:              { subcategoria: 'Periodo' },
+  tramites:            { tipo: 'Tipo de trámite' },
+};
+
+function etiquetaCampo(categoriaId, campo) {
+  return (ETIQUETAS_POR_CATEGORIA[categoriaId] || {})[campo] || ETIQUETAS_DEFECTO[campo] || campo;
+}
+
+// Una fila del informe; regresa '' (nada) si el valor está vacío, para
+// cumplir "no mostrar filas vacías".
+function filaInforme(etiqueta, valor) {
+  if (valor === null || valor === undefined || valor === '') return '';
+  return `<div class="informe-fila"><span class="informe-clave">${escaparHtml(etiqueta)}</span><span class="informe-valor">${escaparHtml(valor)}</span></div>`;
+}
+
+function seccionInforme(titulo, filasHtml, claseExtra) {
+  if (!filasHtml) return '';
+  return `<section class="informe-seccion ${claseExtra || ''}">
+    <h3 class="informe-seccion-titulo">${escaparHtml(titulo)}</h3>
+    <div class="informe-seccion-cuerpo">${filasHtml}</div>
+  </section>`;
+}
+
+function seccionDatosGenerales(doc, cat) {
+  const anio = (doc.fecha || '').slice(0, 4);
+  const filas = [
+    filaInforme('Categoría', cat?.nombre),
+    filaInforme(etiquetaCampo(doc.categoria, 'tipo'), doc.tipo),
+    filaInforme(etiquetaCampo(doc.categoria, 'fecha'), doc.fecha ? formatearFecha(doc.fecha) : null),
+    filaInforme(etiquetaCampo(doc.categoria, 'subcategoria'), doc.subcategoria),
+    filaInforme('Ejercicio', anio),
+    filaInforme(etiquetaCampo(doc.categoria, 'estatus'), doc.estatus),
+  ].join('');
+  return seccionInforme('DATOS GENERALES', filas);
+}
+
+function seccionInformacionFiscal(doc) {
+  const filas = [
+    filaInforme(etiquetaCampo(doc.categoria, 'importe'), doc.importe != null ? formatearMoneda(doc.importe) : null),
+    filaInforme(etiquetaCampo(doc.categoria, 'monto'),   doc.monto   != null ? formatearMoneda(doc.monto)   : null),
+    filaInforme(etiquetaCampo(doc.categoria, 'impuesto'), doc.impuesto),
+  ].join('');
+  return seccionInforme('INFORMACIÓN FISCAL', filas);
+}
+
+function seccionInformacionDocumento(doc) {
+  const filas = [
+    filaInforme(etiquetaCampo(doc.categoria, 'responsable'),  doc.responsable),
+    filaInforme(etiquetaCampo(doc.categoria, 'servicio'),     doc.servicio),
+    filaInforme(etiquetaCampo(doc.categoria, 'vigencia'),     doc.vigencia),
+    filaInforme(etiquetaCampo(doc.categoria, 'metodo_pago'),  doc.metodo_pago),
+    filaInforme(etiquetaCampo(doc.categoria, 'referencia'),   doc.referencia),
+  ].join('');
+  return seccionInforme('INFORMACIÓN DEL DOCUMENTO', filas);
+}
+
+function bloqueLineaCaptura(doc) {
+  if (!doc.linea_captura) return '';
+  return `<section class="informe-seccion informe-linea">
+    <h3 class="informe-seccion-titulo">LÍNEA DE CAPTURA</h3>
+    <div class="informe-linea-caja">
+      <code class="informe-linea-valor">${escaparHtml(doc.linea_captura)}</code>
+      <button type="button" class="informe-linea-copiar" data-accion="copiar-linea-informe" data-valor="${escaparHtml(doc.linea_captura)}" title="Copiar línea de captura" aria-label="Copiar línea de captura">📋 Copiar</button>
+    </div>
+  </section>`;
+}
+
+function bloqueObservaciones(doc) {
+  if (!doc.observaciones) return '';
+  return `<section class="informe-seccion">
+    <h3 class="informe-seccion-titulo">OBSERVACIONES</h3>
+    <div class="informe-obs"><span class="informe-obs-icono" aria-hidden="true">💬</span><p class="informe-obs-texto">${escaparHtml(doc.observaciones)}</p></div>
+  </section>`;
+}
+
+// Contenedor donde abrirVistaPrevia() inyectará, de forma asíncrona, el
+// estado del archivo real (cargando / aviso / error / enlace). El
+// mecanismo para obtener ese enlace (obtenerUrlFirmada) no cambia.
+function bloqueArchivoAdjunto() {
+  return `<section class="informe-seccion informe-archivo">
+    <h3 class="informe-seccion-titulo">ARCHIVO ADJUNTO</h3>
+    <div class="informe-archivo-contenido" id="modalArchivoContenido"></div>
+  </section>`;
+}
+
+function seccionValidacion(doc) {
+  const filas = [
+    filaInforme('Fecha de recepción',      doc.fecha ? formatearFecha(doc.fecha) : null),
+    filaInforme('Responsable',             doc.responsable),
+    filaInforme('Usuario que lo cargó',    doc.subido_por),
+    filaInforme('Fecha de carga',          formatearFechaHora(doc.fecha_subida)),
+    filaInforme('Estado',                  doc.estatus),
+  ].join('');
+  return seccionInforme('VALIDACIÓN DEL DOCUMENTO', filas, 'informe-validacion');
+}
+
+// Construye el "expediente" completo: encabezado con identidad
+// corporativa, marca de agua, secciones adaptadas al tipo de
+// documento, línea de captura, observaciones, archivo adjunto,
+// validación y pie institucional.
+function construirInformeHtml(doc, cat) {
+  return `<div class="informe-hoja">
+    <div class="informe-marca-agua" aria-hidden="true"></div>
+
+    <header class="informe-header">
+      <img class="informe-logo-lateral" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.visibility='hidden'">
+      <div class="informe-header-centro">
+        <img class="informe-logo-centro" src="assets/logo.png" alt="IM Servicios Contables" onerror="this.style.display='none'">
+        <p class="informe-empresa">IM SERVICIOS CONTABLES</p>
+        <h2 class="informe-titulo">INFORME OFICIAL DEL DOCUMENTO</h2>
+        <div class="informe-linea-institucional"></div>
+      </div>
+      <img class="informe-logo-lateral" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.visibility='hidden'">
+    </header>
+
+    <div class="informe-cuerpo">
+      ${seccionDatosGenerales(doc, cat)}
+      ${seccionInformacionFiscal(doc)}
+      ${seccionInformacionDocumento(doc)}
+      ${bloqueLineaCaptura(doc)}
+      ${bloqueObservaciones(doc)}
+      ${bloqueArchivoAdjunto()}
+      ${seccionValidacion(doc)}
+    </div>
+
+    <footer class="informe-footer">
+      <div class="informe-footer-linea"></div>
+      <p>Este documento fue generado automáticamente por el Portal de Clientes de IM Servicios Contables.</p>
+      <p>La información contenida corresponde al expediente digital del contribuyente.</p>
+      <p>Documento emitido por IM Servicios Contables. No requiere firma autógrafa.</p>
+    </footer>
+  </div>`;
+}
+
+// Eventos internos del informe (por ahora, copiar línea de captura).
+// Se vuelve a llamar cada vez que se reconstruye el informe.
+function adjuntarEventosInforme() {
+  modalInformeEl.querySelectorAll('[data-accion="copiar-linea-informe"]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const valor = b.dataset.valor || '';
+      try {
+        await navigator.clipboard.writeText(valor);
+        mostrarToast('Línea copiada correctamente');
+      } catch (e) {
+        mostrarToast('No se pudo copiar. Selecciona el texto manualmente.');
+      }
+    });
+  });
+}
+
 function tarjetaHtml(d) {
   const cat      = CATEGORIAS.find(c => c.id === d.categoria);
   const badge    = obtenerBadgeCard(d);
@@ -601,59 +789,53 @@ function renderHistorial() {
 // =====================================================
 // Vista previa — genera URL firmada antes de mostrar el link
 // =====================================================
+// =====================================================
+// Vista previa — genera URL firmada antes de mostrar el link
+// (misma lógica de siempre: obtenerUrlFirmada, registrarHistorial y
+// los atributos de modalDescargar no cambiaron; solo cambió cómo se
+// presenta todo dentro del modal).
+// =====================================================
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
 
+  const cat = CATEGORIAS.find(c => c.id === doc.categoria);
+
   modalTituloEl.textContent    = doc.nombre || 'Documento';
-  modalSubtituloEl.textContent = `${formatearFecha(doc.fecha)} · ${doc.tipo || 'PDF'}`;
+  modalSubtituloEl.textContent = [cat?.nombre || doc.tipo, periodoAnioTexto(doc)].filter(Boolean).join(' · ');
   modalEl.classList.add('abierto');
 
   modalIframeEl.style.display = 'none';
   modalIframeEl.removeAttribute('src');
   modalIframeEl.removeAttribute('srcdoc');
 
-  const cuerpo = modalIframeEl.parentElement;
-  cuerpo.querySelectorAll('.modal-doc-acciones').forEach(el => el.remove());
+  // Construye el expediente completo (síncrono: usa los datos que ya
+  // tenemos del documento). El estado del archivo real se resuelve
+  // aparte, abajo, igual que antes.
+  modalInformeEl.innerHTML = construirInformeHtml(doc, cat);
+  adjuntarEventosInforme();
+
   modalDescargarEl.style.display = 'none';
 
+  const contenedorArchivo = document.getElementById('modalArchivoContenido');
+
   if (!doc.url_archivo) {
-    const aviso = document.createElement('div');
-    aviso.className = 'modal-doc-acciones';
-    aviso.innerHTML = `<p style="color:#647069;text-align:center;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p>`;
-    cuerpo.appendChild(aviso);
+    contenedorArchivo.innerHTML = `<p class="informe-archivo-aviso">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p>`;
     registrarHistorial(doc);
     return;
   }
 
-  // Aviso de "generando enlace seguro..." mientras se pide la URL firmada
-  const cargando = document.createElement('div');
-  cargando.className = 'modal-doc-acciones';
-  cargando.innerHTML = `<p style="color:#647069;text-align:center;">Generando enlace seguro…</p>`;
-  cuerpo.appendChild(cargando);
+  contenedorArchivo.innerHTML = `<p class="informe-archivo-aviso">Generando enlace seguro…</p>`;
 
   const url = await obtenerUrlFirmada(doc.url_archivo);
-  cargando.remove();
 
   if (!url) {
-    const error = document.createElement('div');
-    error.className = 'modal-doc-acciones';
-    error.innerHTML = `<p style="color:#B23A2E;text-align:center;">No se pudo generar el enlace seguro.<br>Verifica que el archivo exista en esa ruta dentro del bucket "documentos".</p>`;
-    cuerpo.appendChild(error);
+    contenedorArchivo.innerHTML = `<p class="informe-archivo-error">No se pudo generar el enlace seguro.<br>Verifica que el archivo exista en esa ruta dentro del bucket "documentos".</p>`;
     return;
   }
 
-  const acciones = document.createElement('div');
-  acciones.className = 'modal-doc-acciones';
-  acciones.innerHTML = `
-    <p style="color:#647069;font-size:14px;text-align:center;margin-bottom:20px;">
-      Los PDFs se abren en una nueva pestaña para mayor compatibilidad.<br>
-      Este enlace caduca en 1 hora por seguridad.
-    </p>
-    <a href="${escaparHtml(url)}" target="_blank" rel="noopener"
-       style="display:inline-block;background:#0D3327;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:12px;">
-      📄 Abrir PDF ↗
-    </a>`;
-  cuerpo.appendChild(acciones);
+  contenedorArchivo.innerHTML = `
+    <p class="informe-archivo-nota">Los PDFs se abren en una nueva pestaña para mayor compatibilidad. Este enlace caduca en 1 hora por seguridad.</p>
+    <a href="${escaparHtml(url)}" target="_blank" rel="noopener" class="informe-archivo-boton">📄 Abrir documento original ↗</a>`;
 
   modalDescargarEl.style.display = '';
   modalDescargarEl.href          = url;
@@ -669,10 +851,11 @@ function cerrarVistaPrevia() {
   modalIframeEl.style.display = 'none';
   modalIframeEl.removeAttribute('src');
   modalIframeEl.removeAttribute('srcdoc');
-  const cuerpo = modalIframeEl.parentElement;
-  cuerpo.querySelectorAll('.modal-doc-acciones').forEach(el => el.remove());
   modalDescargarEl.style.display = '';
   modalDescargarEl.href = '#';
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.().catch(() => {});
+  }
 }
 
 async function descargarDocumento(doc) {
@@ -722,6 +905,21 @@ btnDescargaMultipleEl.addEventListener('click', async () => {
 modalCerrarEl.addEventListener('click', cerrarVistaPrevia);
 modalEl.addEventListener('click', e => { if (e.target === modalEl) cerrarVistaPrevia(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarVistaPrevia(); });
+
+// Botones nuevos del visor (solo UI: no tocan Supabase/Storage).
+if (btnModalImprimirEl) {
+  btnModalImprimirEl.addEventListener('click', () => window.print());
+}
+if (btnModalPantallaCompletaEl) {
+  btnModalPantallaCompletaEl.addEventListener('click', () => {
+    const contenedor = document.querySelector('.modal-pdf');
+    if (!document.fullscreenElement) {
+      contenedor?.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  });
+}
 
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
   await supabaseClient.auth.signOut();

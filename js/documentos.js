@@ -149,14 +149,28 @@ function mostrarToast(texto) {
 // =====================================================
 // NORMALIZACIÓN DE FILAS
 // =====================================================
+// Supabase (o el autocorrector del navegador al editar celdas a mano)
+// ha cambiado el texto de "tipo" para acuses (ej. a "Acusa"). Como es
+// un problema recurrente de captura, se fuerza aquí el texto correcto
+// para esa categoría, de una vez por todas: no importa lo que diga la
+// columna en la base de datos, en pantalla siempre se ve "Acuse".
+// Si en el futuro hay otra categoría con el mismo problema, se agrega
+// aquí (id de categoría → texto forzado) y queda resuelto en todos
+// lados (tarjetas, tabla, filtros, buscador e informe) porque todos
+// leen de este mismo objeto normalizado.
+const TIPO_FORZADO_POR_CATEGORIA = {
+  acuses: 'Acuse',
+};
+
 function normalizarFila(fila) {
+  const categoria = fila.categoria ?? fila.tipo_documento ?? null;
   return {
     id:           fila.id,
     cliente_id:   fila.cliente_id,
-    categoria:    fila.categoria      ?? fila.tipo_documento ?? null,
+    categoria:    categoria,
     nombre:       fila.nombre_archivo ?? fila.nombre         ?? null,
     url_archivo:  fila.url_archivo    ?? null,
-    tipo:         fila.tipo_documento ?? fila.tipo           ?? 'PDF',
+    tipo:         TIPO_FORZADO_POR_CATEGORIA[categoria] ?? (fila.tipo_documento ?? fila.tipo ?? 'PDF'),
     subcategoria:  fila.subcategoria  ?? null,
     fecha:         fila.fecha         ?? null,
     estatus:       fila.estatus       ?? null,

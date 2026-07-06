@@ -1,0 +1,364 @@
+/* =====================================================================
+   Informe Oficial del Documento — Visor de vista previa
+   Portal de Clientes · IM Servicios Contables
+   =====================================================================
+   Aditivo: se carga después de documentos.css y documentos-cards.css.
+   Solo ajusta/agrega lo necesario para el nuevo visor (.modal-toolbar,
+   .btn-toolbar) y el nuevo "expediente" (.informe-*). No se tocó
+   documentos.css porque no estaba disponible al hacer este cambio.
+   ===================================================================== */
+
+:root {
+  --inf-verde:        #0D3327;
+  --inf-verde-suave:  #E7F0EA;
+  --inf-azul:         #1B4B7A;
+  --inf-azul-suave:   #E7EFF6;
+  --inf-gris-fondo:   #F5F7FA;
+  --inf-gris-borde:   #E3E6E2;
+  --inf-gris-texto:   #647069;
+  --inf-negro:        #20241F;
+}
+
+/* =====================================================================
+   Barra superior del visor (toolbar)
+   ===================================================================== */
+.modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--inf-gris-borde);
+  padding: 14px 18px;
+}
+.modal-toolbar-info h3 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  color: var(--inf-verde);
+}
+.modal-toolbar-info p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--inf-gris-texto);
+}
+.modal-toolbar-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.btn-toolbar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--inf-gris-borde);
+  background: #FFFFFF;
+  color: var(--inf-verde);
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+.btn-toolbar:hover  { background: var(--inf-verde-suave); border-color: var(--inf-verde); }
+.btn-toolbar:active { transform: scale(0.94); }
+.btn-toolbar--descargar { background: var(--inf-verde); color: #fff; border-color: var(--inf-verde); }
+.btn-toolbar--descargar:hover { opacity: 0.92; background: var(--inf-verde); }
+.btn-toolbar--cerrar:hover { background: #FBE7E5; border-color: #B23A2E; color: #B23A2E; }
+.btn-toolbar[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.btn-toolbar[disabled]:hover { background: #FFFFFF; border-color: var(--inf-gris-borde); }
+
+/* =====================================================================
+   Cuerpo del visor (fondo gris muy claro, documento centrado)
+   ===================================================================== */
+.modal-informe-cuerpo {
+  display: block !important; /* sustituye el centrado flex anterior */
+  background: var(--inf-gris-fondo);
+  padding: 32px 20px 40px;
+  overflow-y: auto;
+  max-height: 78vh;
+}
+
+/* =====================================================================
+   Hoja del informe
+   ===================================================================== */
+.informe-hoja {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 2px 4px rgba(13, 51, 39, 0.05), 0 20px 44px rgba(13, 51, 39, 0.10);
+  overflow: hidden;
+  animation: informeFadeIn 360ms ease both;
+}
+@keyframes informeFadeIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .informe-hoja { animation: none; }
+}
+
+/* Marca de agua: logo institucional, muy grande, muy tenue, centrado */
+.informe-marca-agua {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('assets/logo.png');
+  background-repeat: no-repeat;
+  background-position: center 60%;
+  background-size: 480px;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.informe-header, .informe-cuerpo, .informe-footer { position: relative; z-index: 1; }
+
+/* =====================================================================
+   Encabezado corporativo
+   ===================================================================== */
+.informe-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px 24px 22px;
+  border-bottom: 1px solid var(--inf-gris-borde);
+}
+.informe-logo-lateral {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  opacity: 0.18;
+  flex: 0 0 auto;
+}
+.informe-header-centro { text-align: center; }
+.informe-logo-centro {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  margin: 0 auto 10px;
+  display: block;
+}
+.informe-empresa {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.08em;
+  color: var(--inf-verde);
+}
+.informe-titulo {
+  margin: 4px 0 0;
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--inf-negro);
+}
+.informe-linea-institucional {
+  width: 64px;
+  height: 3px;
+  margin: 12px auto 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--inf-verde), var(--inf-azul));
+}
+
+/* =====================================================================
+   Secciones
+   ===================================================================== */
+.informe-cuerpo {
+  padding: 26px 28px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.informe-seccion { display: flex; flex-direction: column; }
+.informe-seccion-titulo {
+  margin: 0 0 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #FFFFFF;
+  background: var(--inf-verde);
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+.informe-seccion-cuerpo {
+  background: var(--inf-gris-fondo);
+  border: 1px solid var(--inf-gris-borde);
+  border-radius: 10px;
+  padding: 4px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 20px;
+}
+.informe-fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--inf-gris-borde);
+  font-size: 13.5px;
+}
+.informe-fila:nth-last-child(-n+2) { border-bottom: none; }
+.informe-clave {
+  font-weight: 700;
+  color: var(--inf-negro);
+  flex: 0 0 auto;
+}
+.informe-valor {
+  color: #384038;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* Validación: mismo patrón, con un tinte azul institucional distintivo */
+.informe-validacion .informe-seccion-titulo { background: var(--inf-azul); }
+.informe-validacion .informe-seccion-cuerpo { background: var(--inf-azul-suave); border-color: #CFE0EF; }
+
+/* =====================================================================
+   Línea de captura
+   ===================================================================== */
+.informe-linea-caja {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--inf-gris-fondo);
+  border: 1px solid var(--inf-gris-borde);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.informe-linea-valor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--inf-negro);
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1;
+}
+.informe-linea-copiar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--inf-gris-borde);
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--inf-verde);
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+.informe-linea-copiar:hover  { background: var(--inf-verde-suave); }
+.informe-linea-copiar:active { transform: scale(0.95); }
+
+/* =====================================================================
+   Observaciones
+   ===================================================================== */
+.informe-obs {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--inf-gris-fondo);
+  border-left: 4px solid var(--inf-verde);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.informe-obs-icono { font-size: 15px; line-height: 1.4; }
+.informe-obs-texto {
+  margin: 0;
+  font-size: 13.5px;
+  color: #384038;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+/* =====================================================================
+   Archivo adjunto (estado async: cargando / aviso / error / enlace)
+   ===================================================================== */
+.informe-archivo .informe-seccion-cuerpo { display: none; } /* no aplica, usa contenido propio */
+.informe-archivo-contenido {
+  background: var(--inf-gris-fondo);
+  border: 1px solid var(--inf-gris-borde);
+  border-radius: 10px;
+  padding: 20px 16px;
+  text-align: center;
+}
+.informe-archivo-aviso { margin: 0; color: var(--inf-gris-texto); font-size: 13.5px; }
+.informe-archivo-error { margin: 0; color: #B23A2E; font-size: 13.5px; }
+.informe-archivo-nota  { margin: 0 0 14px; color: var(--inf-gris-texto); font-size: 12.5px; }
+.informe-archivo-boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--inf-verde);
+  color: #fff;
+  padding: 11px 24px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+}
+.informe-archivo-boton:hover { opacity: 0.92; }
+
+/* =====================================================================
+   Pie institucional
+   ===================================================================== */
+.informe-footer {
+  padding: 20px 28px 30px;
+  text-align: center;
+}
+.informe-footer-linea {
+  height: 1px;
+  background: var(--inf-gris-borde);
+  margin-bottom: 16px;
+}
+.informe-footer p {
+  margin: 0 0 4px;
+  font-size: 10.5px;
+  color: var(--inf-gris-texto);
+  line-height: 1.6;
+}
+
+/* =====================================================================
+   Impresión: solo el informe, sin toolbar ni estados de carga/enlace
+   ===================================================================== */
+@media print {
+  body * { visibility: hidden; }
+  .modal-informe, .modal-informe * { visibility: visible; }
+  .modal-overlay, .modal-pdf, .modal-informe-cuerpo {
+    position: static !important; background: #fff !important; max-height: none !important; overflow: visible !important; padding: 0 !important;
+  }
+  .modal-toolbar, .informe-archivo, #modalIframe { display: none !important; }
+  .informe-hoja { box-shadow: none; animation: none; max-width: 100%; }
+}
+
+/* =====================================================================
+   Responsive
+   ===================================================================== */
+@media (max-width: 640px) {
+  .modal-toolbar { padding: 12px 14px; }
+  .modal-toolbar-acciones { gap: 6px; }
+  .btn-toolbar { width: 32px; height: 32px; font-size: 13px; }
+  .modal-informe-cuerpo { padding: 18px 10px 28px; max-height: 82vh; }
+  .informe-header { padding: 24px 16px 18px; gap: 12px; }
+  .informe-logo-lateral { display: none; }
+  .informe-cuerpo { padding: 20px 16px 6px; }
+  .informe-seccion-cuerpo { grid-template-columns: 1fr; }
+  .informe-fila { flex-direction: column; gap: 2px; }
+  .informe-valor { text-align: left; }
+  .informe-marca-agua { background-size: 300px; }
+}

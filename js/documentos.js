@@ -366,36 +366,151 @@ function renderTarjetas(lista, cat) {
   adjuntarEventos();
 }
 
-function tarjetaHtml(d) {
-  const extras = [];
-  if (d.linea_captura) extras.push(['Línea de captura', d.linea_captura, true]);
-  if (d.importe  != null) extras.push(['Importe',        formatearMoneda(d.importe), false]);
-  if (d.monto    != null) extras.push(['Monto',          formatearMoneda(d.monto),   false]);
-  if (d.servicio)  extras.push(['Servicio',    d.servicio,   false]);
-  if (d.responsable) extras.push(['Responsable', d.responsable, false]);
-  if (d.vigencia)  extras.push(['Vigencia',    d.vigencia,   false]);
-  if (d.metodo_pago) extras.push(['Método pago', d.metodo_pago, false]);
-  if (d.referencia) extras.push(['Referencia',  d.referencia, true]);
-  if (d.impuesto)  extras.push(['Impuesto',    d.impuesto,   false]);
+// =====================================================
+// Rediseño de tarjeta (UI/UX únicamente)
+// =====================================================
+// Mapa categoría → color de la franja superior. Las categorías reales
+// del sistema (CATEGORIAS, arriba) no coinciden 1 a 1 con los ejemplos
+// del brief (Declaraciones/Honorarios/Estados financieros/Opinión
+// SAT/Constancias/Acuses), así que se mapean por significado:
+//   acuses / remisiones        → turquesa (acuses y entregas)
+//   pagos_declaraciones        → verde    (pagos derivados de declaraciones)
+//   pagos_im / presupuestos    → azul     (honorarios / cotizaciones)
+//   opinion / detalle_opinion  → amarillo (Opinión SAT)
+//   tramites                   → gris     (constancias y trámites)
+//   acuerdo                    → morado   (documento contractual)
+// =====================================================
+const COLOR_POR_CATEGORIA = {
+  acuses:              'turquesa',
+  remisiones:           'turquesa',
+  pagos_declaraciones: 'verde',
+  pagos_im:            'azul',
+  presupuestos:        'azul',
+  opinion:             'amarillo',
+  detalle_opinion:     'amarillo',
+  tramites:            'gris',
+  acuerdo:             'morado',
+};
+function colorCategoria(catId) { return COLOR_POR_CATEGORIA[catId] || 'gris'; }
 
-  return `<div class="documento-card con-check">
-    <input type="checkbox" class="documento-check" data-id="${d.id}" ${estado.seleccion.has(String(d.id)) ? 'checked' : ''} aria-label="Seleccionar">
-    <div class="documento-card-top">
-      <h4>${escaparHtml(d.nombre || 'Documento')}</h4>
-      ${esReciente(d.fecha) ? '<span class="doc-reciente">Nuevo</span>' : ''}
+// Ícono grande de respaldo cuando no es posible generar una miniatura
+// real del archivo (ver nota junto a doc-card__archivo más abajo).
+function iconoArchivo(tipo) {
+  const t = (tipo || '').toLowerCase();
+  if (t.includes('pdf'))  return { emoji: '📕', etiqueta: 'PDF' };
+  if (t.includes('png') || t.includes('jpg') || t.includes('jpeg') || t.includes('imagen') || t.includes('image')) {
+    return { emoji: '🖼️', etiqueta: 'Imagen' };
+  }
+  return { emoji: '📁', etiqueta: tipo || 'Archivo' };
+}
+
+// Badge automático de la esquina superior derecha. Prioriza "Nuevo" si
+// el documento es reciente (igual que el badge anterior); si no, deriva
+// el color/emoji del texto libre de "estatus" hacia una de las 5
+// variantes del brief (Nuevo/Pendiente/Pagado/Vencido/Archivado).
+// No sustituye a badgeEstatus() (se sigue usando igual que antes en la
+// vista de tabla, sin cambios).
+function obtenerBadgeCard(d) {
+  if (esReciente(d.fecha)) return { emoji: '🟢', texto: 'Nuevo', clase: 'nuevo' };
+
+  const texto = (d.estatus || '').trim();
+  const n = texto.toLowerCase();
+  if (!texto) return { emoji: '⚪', texto: 'Sin estatus', clase: 'archivado' };
+  if (n.includes('pagad'))                                   return { emoji: '🔵', texto, clase: 'pagado' };
+  if (n.includes('pend') || n.includes('proceso'))           return { emoji: '🟡', texto, clase: 'pendiente' };
+  if (n.includes('venc') || n.includes('cancel') || n.includes('rechaz')) return { emoji: '🔴', texto, clase: 'vencido' };
+  if (n.includes('archiv'))                                  return { emoji: '⚪', texto, clase: 'archivado' };
+  return { emoji: '🟢', texto, clase: 'nuevo' }; // vigente/presentado/aprobado/concluido…
+}
+
+// "Periodo + Año" bajo el nombre del documento (ej. "Marzo 2026").
+function periodoAnioTexto(d) {
+  const anio = (d.fecha || '').slice(0, 4);
+  if (d.subcategoria && anio) return `${d.subcategoria} ${anio}`;
+  if (d.subcategoria) return d.subcategoria;
+  return anio || '';
+}
+
+function tarjetaHtml(d) {
+  const cat      = CATEGORIAS.find(c => c.id === d.categoria);
+  const badge    = obtenerBadgeCard(d);
+  const anio     = (d.fecha || '').slice(0, 4);
+  const periodo  = periodoAnioTexto(d);
+  const archivo  = iconoArchivo(d.tipo);
+
+  // Información principal solicitada: Fecha, Tipo, Estado, Periodo,
+  // Año, Responsable. Los campos vacíos simplemente no se agregan.
+  const filas = [];
+  if (d.fecha)        filas.push(['Fecha', formatearFecha(d.fecha)]);
+  if (d.tipo)          filas.push(['Tipo', escaparHtml(d.tipo)]);
+  if (d.estatus)       filas.push(['Estado', escaparHtml(d.estatus)]);
+  if (d.subcategoria)  filas.push(['Periodo', escaparHtml(d.subcategoria)]);
+  if (anio)            filas.push(['Año', anio]);
+  if (d.responsable)   filas.push(['Responsable', escaparHtml(d.responsable)]);
+
+  // Campos financieros/administrativos propios de cada categoría (se
+  // conservan del diseño anterior; siguen ocultos si están vacíos).
+  if (d.importe  != null) filas.push(['Importe', formatearMoneda(d.importe)]);
+  if (d.monto    != null) filas.push(['Monto', formatearMoneda(d.monto)]);
+  if (d.servicio)          filas.push(['Servicio', escaparHtml(d.servicio)]);
+  if (d.vigencia)          filas.push(['Vigencia', escaparHtml(d.vigencia)]);
+  if (d.metodo_pago)       filas.push(['Método de pago', escaparHtml(d.metodo_pago)]);
+  if (d.referencia)        filas.push(['Referencia', escaparHtml(d.referencia)]);
+  if (d.impuesto)          filas.push(['Impuesto', escaparHtml(d.impuesto)]);
+
+  return `<div class="documento-card con-check doc-card doc-card--${colorCategoria(d.categoria)}">
+    <input type="checkbox" class="documento-check doc-card__check" data-id="${d.id}" ${estado.seleccion.has(String(d.id)) ? 'checked' : ''} aria-label="Seleccionar">
+
+    <span class="doc-card__badge doc-card__badge--${badge.clase}">${badge.emoji} ${escaparHtml(badge.texto)}</span>
+
+    <div class="doc-card__header">
+      <span class="doc-card__header-icono" aria-hidden="true">${cat?.icono || '📄'}</span>
+      <div class="doc-card__header-texto">
+        <h4 class="doc-card__nombre">${escaparHtml(d.nombre || 'Documento')}</h4>
+        ${periodo ? `<p class="doc-card__periodo">${escaparHtml(periodo)}</p>` : ''}
+      </div>
     </div>
-    <div class="documento-meta-lista">
-      <div class="fila"><span class="clave">Fecha</span><span class="valor">${formatearFecha(d.fecha)}</span></div>
-      <div class="fila"><span class="clave">Tipo</span><span class="valor">${escaparHtml(d.tipo||'—')}</span></div>
-      <div class="fila"><span class="clave">Estatus</span><span class="valor">${badgeEstatus(d.estatus)}</span></div>
-      ${extras.map(([k,v,m]) => `<div class="fila"><span class="clave">${k}</span><span class="valor ${m?'mono':''}">${escaparHtml(v)}</span></div>`).join('')}
+
+    <div class="doc-card__info">
+      ${filas.map(([k, v]) => `<div class="doc-card__info-fila"><span class="doc-card__info-clave">${k}</span><span class="doc-card__info-valor">${v}</span></div>`).join('')}
     </div>
-    ${d.observaciones ? `<div class="documento-obs">${escaparHtml(d.observaciones)}</div>` : ''}
-    <div class="documento-card-footer">
-      <span class="documento-subido-por">${d.subido_por ? `Subido por ${escaparHtml(d.subido_por)}` : ''}</span>
-      <div class="documento-acciones">
-        <button type="button" class="accion-ver" data-accion="ver" data-id="${d.id}">Ver</button>
-        <button type="button" data-accion="descargar" data-id="${d.id}">Descargar</button>
+
+    ${d.linea_captura ? `
+    <div class="doc-card__linea">
+      <span class="doc-card__linea-label">Línea de captura</span>
+      <div class="doc-card__linea-caja">
+        <code class="doc-card__linea-valor">${escaparHtml(d.linea_captura)}</code>
+        <button type="button" class="doc-card__linea-copiar" data-accion="copiar-linea" data-valor="${escaparHtml(d.linea_captura)}" title="Copiar línea de captura" aria-label="Copiar línea de captura">📋</button>
+      </div>
+    </div>` : ''}
+
+    ${d.observaciones ? `
+    <div class="doc-card__obs">
+      <span class="doc-card__obs-icono" aria-hidden="true">💬</span>
+      <p class="doc-card__obs-texto">${escaparHtml(d.observaciones)}</p>
+    </div>` : ''}
+
+    <!-- Miniatura real: requeriría pedir una URL firmada por archivo al
+         renderizar la lista (llamada extra a Storage por documento), lo
+         cual no se hizo aquí a propósito para no tocar Storage/las
+         consultas. Se muestra un ícono grande según el tipo de archivo. -->
+    <div class="doc-card__archivo">
+      <span class="doc-card__archivo-icono" aria-hidden="true">${archivo.emoji}</span>
+      <span class="doc-card__archivo-etiqueta">${escaparHtml(archivo.etiqueta)}</span>
+    </div>
+
+    <div class="doc-card__footer">
+      <span class="doc-card__subido-por">${d.subido_por ? `Subido por ${escaparHtml(d.subido_por)}` : ''}</span>
+      <div class="doc-card__acciones">
+        <button type="button" class="doc-card__accion doc-card__accion--ver" data-accion="ver" data-id="${d.id}">
+          <span aria-hidden="true">👁</span> Ver
+        </button>
+        <button type="button" class="doc-card__accion doc-card__accion--descargar" data-accion="descargar" data-id="${d.id}">
+          <span aria-hidden="true">⬇</span> Descargar
+        </button>
+        <button type="button" class="doc-card__accion doc-card__accion--compartir" title="Próximamente" disabled>
+          <span aria-hidden="true">📤</span> Compartir
+        </button>
       </div>
     </div>
   </div>`;
@@ -434,6 +549,19 @@ function adjuntarEventos() {
   });
   contenedorDocumentosEl.querySelectorAll('[data-accion="descargar"]').forEach(b => {
     b.addEventListener('click', () => descargarDocumento(buscarDoc(b.dataset.id)));
+  });
+  // Copiar línea de captura (parte del rediseño de la tarjeta). Solo
+  // copia texto al portapapeles; no toca lógica de Storage/Supabase.
+  contenedorDocumentosEl.querySelectorAll('[data-accion="copiar-linea"]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const valor = b.dataset.valor || '';
+      try {
+        await navigator.clipboard.writeText(valor);
+        mostrarToast('Línea copiada');
+      } catch (e) {
+        mostrarToast('No se pudo copiar. Selecciona el texto manualmente.');
+      }
+    });
   });
   contenedorDocumentosEl.querySelectorAll('.documento-check').forEach(chk => {
     chk.addEventListener('change', () => {

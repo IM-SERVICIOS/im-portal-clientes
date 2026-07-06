@@ -134,7 +134,7 @@
   border-bottom: 1px solid var(--inf-gris-borde);
 }
 .informe-logo-lateral {
-  width: 68px;
+  width: 98px;
   height: 68px;
   object-fit: contain;
   opacity: 0.32;
@@ -142,10 +142,10 @@
 }
 .informe-header-centro { text-align: center; }
 .informe-logo-centro {
-  width: 84px;
-  height: 84px;
+  width: 124px;
+  height: 85px;
   object-fit: contain;
-  margin: 0 auto 10px;
+  margin: 0 auto 15px;
   display: block;
 }
 .informe-empresa {

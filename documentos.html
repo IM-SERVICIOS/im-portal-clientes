@@ -15,6 +15,9 @@
          se agrega aparte para no arriesgar reglas existentes que no están a la
          vista. Ver comentario al inicio de documentos-cards.css. -->
     <link rel="stylesheet" href="css/documentos-cards.css">
+    <!-- Rediseño del visor / Informe Oficial del Documento (modal de vista
+         previa). También aditivo, mismo motivo que documentos-cards.css. -->
+    <link rel="stylesheet" href="css/documentos-informe.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -182,22 +185,29 @@
 
 </div>
 
-<!-- Modal de vista previa de PDF -->
+<!-- Modal de vista previa: Informe Oficial del Documento -->
 <div class="modal-overlay" id="modalVistaPrevia">
     <div class="modal-pdf">
-        <div class="modal-pdf-header">
-            <div>
+
+        <div class="modal-pdf-header modal-toolbar">
+            <div class="modal-toolbar-info">
                 <h3 id="modalTitulo">Documento</h3>
                 <p id="modalSubtitulo" class="seccion-subtitulo"></p>
             </div>
-            <div class="modal-pdf-acciones">
-                <a id="modalDescargar" class="btn btn-primary btn-sm" href="#" download>⬇ Descargar</a>
-                <button id="modalCerrar" class="btn btn-ghost btn-sm" type="button" aria-label="Cerrar">✕</button>
+            <div class="modal-pdf-acciones modal-toolbar-acciones">
+                <a id="modalDescargar" class="btn-toolbar btn-toolbar--descargar" href="#" download title="Descargar" aria-label="Descargar">⬇</a>
+                <button id="btnModalImprimir" class="btn-toolbar" type="button" title="Imprimir" aria-label="Imprimir">🖨️</button>
+                <button id="btnModalCompartir" class="btn-toolbar" type="button" title="Compartir (próximamente)" aria-label="Compartir" disabled>📤</button>
+                <button id="btnModalPantallaCompleta" class="btn-toolbar" type="button" title="Pantalla completa" aria-label="Pantalla completa">⛶</button>
+                <button id="modalCerrar" class="btn-toolbar btn-toolbar--cerrar" type="button" aria-label="Cerrar">✕</button>
             </div>
         </div>
-        <div class="modal-pdf-cuerpo" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;padding:32px 24px;text-align:center;">
+
+        <div class="modal-pdf-cuerpo modal-informe-cuerpo">
             <iframe id="modalIframe" style="display:none;width:100%;height:100%;border:none;" aria-hidden="true"></iframe>
+            <div id="modalInforme" class="modal-informe"></div>
         </div>
+
     </div>
 </div>
 

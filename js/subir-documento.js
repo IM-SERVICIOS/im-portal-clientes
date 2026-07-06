@@ -58,6 +58,14 @@ let campoSubidoPorEl;
 let btnSubirEl;
 
 let chkGenerarDeclaracionEl;
+let campoEstatusSatWrapEl;
+let campoEstatusSatEl;
+let campoMontoPagadoWrapEl;
+let campoMontoPagadoEl;
+let campoIsrWrapEl;
+let campoIsrEl;
+let campoIvaWrapEl;
+let campoIvaEl;
 let chkGenerarHonorarioEl;
 let campoMontoHonorarioWrapEl;
 let campoMontoHonorarioEl;
@@ -218,6 +226,14 @@ function obtenerReferenciasDOM() {
   btnSubirEl              = document.getElementById('btnSubir');
 
   chkGenerarDeclaracionEl      = document.getElementById('chkGenerarDeclaracion');
+  campoEstatusSatWrapEl        = document.getElementById('campoEstatusSatWrap');
+  campoEstatusSatEl            = document.getElementById('campoEstatusSat');
+  campoMontoPagadoWrapEl       = document.getElementById('campoMontoPagadoWrap');
+  campoMontoPagadoEl           = document.getElementById('campoMontoPagado');
+  campoIsrWrapEl               = document.getElementById('campoIsrWrap');
+  campoIsrEl                   = document.getElementById('campoIsr');
+  campoIvaWrapEl               = document.getElementById('campoIvaWrap');
+  campoIvaEl                   = document.getElementById('campoIva');
   chkGenerarHonorarioEl        = document.getElementById('chkGenerarHonorario');
   campoMontoHonorarioWrapEl    = document.getElementById('campoMontoHonorarioWrap');
   campoMontoHonorarioEl        = document.getElementById('campoMontoHonorario');
@@ -370,6 +386,23 @@ function actualizarCamposSegunCategoria() {
 // más abajo para el flujo completo y las validaciones de seguridad.
 // =====================================================
 
+// Handler del checkbox "Generar registro en Declaraciones": muestra u
+// oculta sus campos condicionales (Estatus, Monto pagado, ISR, IVA).
+function manejarCambioGenerarDeclaracion() {
+  const mostrar = chkGenerarDeclaracionEl.checked;
+  if (campoEstatusSatWrapEl)  campoEstatusSatWrapEl.style.display  = mostrar ? 'flex' : 'none';
+  if (campoMontoPagadoWrapEl) campoMontoPagadoWrapEl.style.display = mostrar ? 'flex' : 'none';
+  if (campoIsrWrapEl)         campoIsrWrapEl.style.display         = mostrar ? 'flex' : 'none';
+  if (campoIvaWrapEl)         campoIvaWrapEl.style.display         = mostrar ? 'flex' : 'none';
+
+  if (!mostrar) {
+    if (campoEstatusSatEl)  campoEstatusSatEl.value  = '';
+    if (campoMontoPagadoEl) campoMontoPagadoEl.value = '';
+    if (campoIsrEl)         campoIsrEl.value         = '';
+    if (campoIvaEl)         campoIvaEl.value         = '';
+  }
+}
+
 // Handler del checkbox "Generar registro en Honorarios": muestra u
 // oculta sus campos condicionales.
 function manejarCambioGenerarHonorario() {
@@ -396,6 +429,12 @@ function obtenerAccionesAdministrativas() {
   return {
     generar_declaracion: generarDeclaracion,
     generar_honorario:   generarHonorario,
+    declaracion: generarDeclaracion ? {
+      estatusSat:   campoEstatusSatEl ? campoEstatusSatEl.value.trim() || null : null,
+      montoPagado:  campoMontoPagadoEl ? (parseFloat(campoMontoPagadoEl.value) || null) : null,
+      isr:          campoIsrEl ? (parseFloat(campoIsrEl.value) || null) : null,
+      iva:          campoIvaEl ? (parseFloat(campoIvaEl.value) || null) : null,
+    } : null,
     honorario: generarHonorario ? {
       concepto: campoConceptoHonorarioEl ? campoConceptoHonorarioEl.value.trim() : '',
       monto:    campoMontoHonorarioEl ? (parseFloat(campoMontoHonorarioEl.value) || null) : null,
@@ -408,6 +447,14 @@ function obtenerAccionesAdministrativas() {
 function reiniciarAccionesAdministrativas() {
   if (chkGenerarDeclaracionEl) chkGenerarDeclaracionEl.checked = false;
   if (chkGenerarHonorarioEl)   chkGenerarHonorarioEl.checked   = false;
+  if (campoEstatusSatWrapEl)  campoEstatusSatWrapEl.style.display  = 'none';
+  if (campoMontoPagadoWrapEl) campoMontoPagadoWrapEl.style.display = 'none';
+  if (campoIsrWrapEl)         campoIsrWrapEl.style.display         = 'none';
+  if (campoIvaWrapEl)         campoIvaWrapEl.style.display         = 'none';
+  if (campoEstatusSatEl)  campoEstatusSatEl.value  = '';
+  if (campoMontoPagadoEl) campoMontoPagadoEl.value = '';
+  if (campoIsrEl)         campoIsrEl.value         = '';
+  if (campoIvaEl)         campoIvaEl.value         = '';
   if (campoConceptoHonorarioWrapEl) campoConceptoHonorarioWrapEl.style.display = 'none';
   if (campoMontoHonorarioWrapEl)    campoMontoHonorarioWrapEl.style.display    = 'none';
   if (campoEstadoHonorarioWrapEl)   campoEstadoHonorarioWrapEl.style.display   = 'none';
@@ -478,13 +525,18 @@ function registrarErrorSupabase(operacion, datosEnviados, respuesta) {
 // La protección definitiva contra usuarios no-admin vive en las
 // políticas RLS de Supabase (ver setup_acciones_administrativas.sql).
 // =====================================================
-async function crearDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo }) {
+async function crearDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo, declaracion }) {
   const fila = {
     cliente_id:         Number(clienteId),
     ejercicio:          periodo.ejercicio,
     mes:                periodo.mesNombre,
     tipo_declaracion:   categoriaNombre,
     fecha_presentacion: campoFechaEl.value,
+    // columnas reales de la tabla, capturadas desde "Acciones Administrativas"
+    estatus_sat:        declaracion?.estatusSat ?? null,
+    monto_pagado:       declaracion?.montoPagado ?? null,
+    isr:                declaracion?.isr ?? null,
+    iva:                declaracion?.iva ?? null,
     // columnas enriquecidas (ver ALTER TABLE en setup_acciones_administrativas.sql)
     nombre_documento:   campoNombreEl.value.trim(),
     observaciones:      campoObservacionesEl.value.trim() || null,
@@ -568,7 +620,7 @@ async function ejecutarAccionesAdministrativas({ clienteId, categoriaNombre, rut
   const periodo = calcularPeriodoDesdeFormulario();
 
   if (acciones.generar_declaracion) {
-    const { error } = await crearDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo });
+    const { error } = await crearDeclaracion({ clienteId, categoriaNombre, periodo, rutaArchivo, declaracion: acciones.declaracion });
     if (error) {
       errores.push(`No se pudo crear el registro en Declaraciones: ${error.message}`);
     }
@@ -755,6 +807,10 @@ async function cerrarSesion() {
 // módulo. Se llama una sola vez desde inicializarFormulario().
 function registrarEventos() {
   campoCategoriaEl.addEventListener('change', actualizarCamposSegunCategoria);
+
+  if (chkGenerarDeclaracionEl) {
+    chkGenerarDeclaracionEl.addEventListener('change', manejarCambioGenerarDeclaracion);
+  }
 
   if (chkGenerarHonorarioEl) {
     chkGenerarHonorarioEl.addEventListener('change', manejarCambioGenerarHonorario);

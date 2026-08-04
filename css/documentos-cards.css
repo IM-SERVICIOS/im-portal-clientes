@@ -1,0 +1,340 @@
+/* =====================================================================
+   Rediseño de tarjetas de documento — Portal de Clientes
+   IM Servicios Contables
+   =====================================================================
+   Este archivo es ADITIVO: se carga después de documentos.css y solo
+   agrega/ajusta lo necesario para el nuevo diseño de tarjeta (clases
+   doc-card__*). No se tocó documentos.css porque no estaba disponible
+   al momento de este cambio; si en el futuro se integra todo en un
+   solo archivo, estas reglas se pueden mover sin problema.
+
+   Paleta institucional (blanco / gris claro / verde y azul
+   institucional, sin colores llamativos):
+   ===================================================================== */
+
+:root {
+  --doc-verde-institucional:       #0D3327;
+  --doc-verde-institucional-suave: #E7F0EA;
+  --doc-azul-institucional:        #1B4B7A;
+  --doc-azul-institucional-suave:  #E7EFF6;
+  --doc-gris-claro:                #F4F5F4;
+  --doc-gris-borde:                #E3E6E2;
+  --doc-gris-texto:                #647069;
+  --doc-blanco:                    #FFFFFF;
+
+  /* Franja superior por categoría (tonos apagados, no saturados) */
+  --doc-color-turquesa: #16938E;
+  --doc-color-verde:    #2F7A54;
+  --doc-color-azul:     #2F6FA6;
+  --doc-color-amarillo: #B98A1E;
+  --doc-color-gris:     #8A9088;
+  --doc-color-morado:   #6C4EA0;
+}
+
+/* =====================================================================
+   Tarjeta base
+   ===================================================================== */
+.documento-card.doc-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--doc-blanco);
+  border: 1px solid var(--doc-gris-borde);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(13, 51, 39, 0.04), 0 6px 16px rgba(13, 51, 39, 0.06);
+  padding: 22px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+  animation: docCardEntrada 320ms ease both;
+}
+
+.documento-card.doc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 10px rgba(13, 51, 39, 0.07), 0 16px 32px rgba(13, 51, 39, 0.11);
+  border-color: #D3D8D1;
+}
+
+@keyframes docCardEntrada {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Pequeño escalonado para las primeras tarjetas visibles */
+.contenedor-documentos.vista-tarjetas .documento-card.doc-card:nth-child(1) { animation-delay: 0ms;  }
+.contenedor-documentos.vista-tarjetas .documento-card.doc-card:nth-child(2) { animation-delay: 40ms; }
+.contenedor-documentos.vista-tarjetas .documento-card.doc-card:nth-child(3) { animation-delay: 80ms; }
+.contenedor-documentos.vista-tarjetas .documento-card.doc-card:nth-child(4) { animation-delay: 120ms; }
+.contenedor-documentos.vista-tarjetas .documento-card.doc-card:nth-child(5) { animation-delay: 160ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .documento-card.doc-card { animation: none; transition: none; }
+  .documento-card.doc-card:hover { transform: none; }
+}
+
+/* Franja superior de color según categoría */
+.doc-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: var(--doc-color-gris);
+}
+.doc-card--turquesa::before { background: var(--doc-color-turquesa); }
+.doc-card--verde::before    { background: var(--doc-color-verde); }
+.doc-card--azul::before     { background: var(--doc-color-azul); }
+.doc-card--amarillo::before { background: var(--doc-color-amarillo); }
+.doc-card--gris::before     { background: var(--doc-color-gris); }
+.doc-card--morado::before   { background: var(--doc-color-morado); }
+
+/* Checkbox de selección (misma función de siempre, solo reposicionado) */
+.doc-card__check {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--doc-verde-institucional);
+  cursor: pointer;
+}
+
+/* =====================================================================
+   Badge de estatus (esquina superior derecha)
+   ===================================================================== */
+.doc-card__badge {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-card__badge--nuevo      { background: var(--doc-verde-institucional-suave); color: #1E6B45; }
+.doc-card__badge--pendiente  { background: #FBF0DC; color: #92670C; }
+.doc-card__badge--pagado     { background: var(--doc-azul-institucional-suave); color: var(--doc-azul-institucional); }
+.doc-card__badge--vencido    { background: #FBE7E5; color: #B23A2E; }
+.doc-card__badge--archivado  { background: var(--doc-gris-claro); color: var(--doc-gris-texto); }
+
+/* =====================================================================
+   Encabezado: ícono + nombre + periodo
+   ===================================================================== */
+.doc-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 6px;
+  padding-right: 90px; /* deja espacio libre para el badge */
+}
+.doc-card__header-icono {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: var(--doc-gris-claro);
+  border-radius: 10px;
+}
+.doc-card__header-texto { min-width: 0; }
+.doc-card__nombre {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--doc-verde-institucional);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.doc-card__periodo {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--doc-gris-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* =====================================================================
+   Información (Fecha, Tipo, Estado, Periodo, Año, Responsable, etc.)
+   ===================================================================== */
+.doc-card__info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+.doc-card__info-fila {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.doc-card__info-clave {
+  font-size: 11px;
+  color: var(--doc-gris-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.doc-card__info-valor {
+  font-size: 13.5px;
+  color: #22271F;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* =====================================================================
+   Línea de captura
+   ===================================================================== */
+.doc-card__linea { display: flex; flex-direction: column; gap: 6px; }
+.doc-card__linea-label {
+  font-size: 11px;
+  color: var(--doc-gris-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.doc-card__linea-caja {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--doc-gris-claro);
+  border: 1px solid var(--doc-gris-borde);
+  border-radius: 10px;
+  padding: 9px 10px 9px 12px;
+}
+.doc-card__linea-valor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  color: #2B3128;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1;
+}
+.doc-card__linea-copiar {
+  flex: 0 0 auto;
+  border: none;
+  background: var(--doc-blanco);
+  border: 1px solid var(--doc-gris-borde);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 180ms ease, transform 180ms ease;
+}
+.doc-card__linea-copiar:hover  { background: var(--doc-verde-institucional-suave); }
+.doc-card__linea-copiar:active { transform: scale(0.94); }
+
+/* =====================================================================
+   Observaciones
+   ===================================================================== */
+.doc-card__obs {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--doc-azul-institucional-suave);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.doc-card__obs-icono { font-size: 14px; line-height: 1.4; }
+.doc-card__obs-texto {
+  margin: 0;
+  font-size: 12.5px;
+  color: #2B3B4D;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* =====================================================================
+   Vista previa del archivo (ícono grande — ver nota en documentos.js)
+   ===================================================================== */
+.doc-card__archivo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--doc-gris-claro);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.doc-card__archivo-icono { font-size: 24px; line-height: 1; }
+.doc-card__archivo-etiqueta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--doc-gris-texto);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* =====================================================================
+   Pie: subido por + acciones
+   ===================================================================== */
+.doc-card__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--doc-gris-borde);
+}
+.doc-card__subido-por {
+  font-size: 11.5px;
+  color: var(--doc-gris-texto);
+  min-height: 1em;
+}
+.doc-card__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.doc-card__accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+.doc-card__accion:active { transform: scale(0.96); }
+
+.doc-card__accion--ver {
+  background: var(--doc-verde-institucional);
+  color: var(--doc-blanco);
+}
+.doc-card__accion--ver:hover { box-shadow: 0 6px 14px rgba(13, 51, 39, 0.22); }
+
+.doc-card__accion--descargar {
+  background: var(--doc-blanco);
+  color: var(--doc-azul-institucional);
+  border-color: var(--doc-azul-institucional);
+}
+.doc-card__accion--descargar:hover { background: var(--doc-azul-institucional-suave); }
+
+.doc-card__accion--compartir {
+  background: var(--doc-gris-claro);
+  color: var(--doc-gris-texto);
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.doc-card__accion--compartir:active { transform: none; }
+
+/* =====================================================================
+   Responsive
+   ===================================================================== */
+@media (max-width: 480px) {
+  .doc-card__info { grid-template-columns: 1fr; }
+  .doc-card__header { padding-right: 70px; }
+  .doc-card__acciones { gap: 6px; }
+  .doc-card__accion { flex: 1 1 auto; justify-content: center; }
+}

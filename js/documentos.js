@@ -57,8 +57,11 @@ const modalEl           = document.getElementById('modalVistaPrevia');
 const modalTituloEl     = document.getElementById('modalTitulo');
 const modalSubtituloEl  = document.getElementById('modalSubtitulo');
 const modalIframeEl     = document.getElementById('modalIframe');
+const modalInformeEl    = document.getElementById('modalInforme');
 const modalDescargarEl  = document.getElementById('modalDescargar');
 const modalCerrarEl     = document.getElementById('modalCerrar');
+const btnModalImprimirEl         = document.getElementById('btnModalImprimir');
+const btnModalPantallaCompletaEl = document.getElementById('btnModalPantallaCompleta');
 
 // =====================================================
 // Catálogo de categorías
@@ -102,6 +105,12 @@ function formatearFecha(iso) {
   if (isNaN(d)) return iso;
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+function formatearFechaHora(timestamp) {
+  if (!timestamp) return null;
+  const d = new Date(timestamp);
+  if (isNaN(d)) return null;
+  return d.toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 function esReciente(iso) {
   if (!iso) return false;
   const diff = (Date.now() - new Date(iso + 'T00:00:00').getTime()) / 86400000;
@@ -140,14 +149,28 @@ function mostrarToast(texto) {
 // =====================================================
 // NORMALIZACIÓN DE FILAS
 // =====================================================
+// Supabase (o el autocorrector del navegador al editar celdas a mano)
+// ha cambiado el texto de "tipo" para acuses (ej. a "Acusa"). Como es
+// un problema recurrente de captura, se fuerza aquí el texto correcto
+// para esa categoría, de una vez por todas: no importa lo que diga la
+// columna en la base de datos, en pantalla siempre se ve "Acuse".
+// Si en el futuro hay otra categoría con el mismo problema, se agrega
+// aquí (id de categoría → texto forzado) y queda resuelto en todos
+// lados (tarjetas, tabla, filtros, buscador e informe) porque todos
+// leen de este mismo objeto normalizado.
+const TIPO_FORZADO_POR_CATEGORIA = {
+  acuses: 'Acuse',
+};
+
 function normalizarFila(fila) {
+  const categoria = fila.categoria ?? fila.tipo_documento ?? null;
   return {
     id:           fila.id,
     cliente_id:   fila.cliente_id,
-    categoria:    fila.categoria      ?? fila.tipo_documento ?? null,
+    categoria:    categoria,
     nombre:       fila.nombre_archivo ?? fila.nombre         ?? null,
     url_archivo:  fila.url_archivo    ?? null,
-    tipo:         fila.tipo_documento ?? fila.tipo           ?? 'PDF',
+    tipo:         TIPO_FORZADO_POR_CATEGORIA[categoria] ?? (fila.tipo_documento ?? fila.tipo ?? 'PDF'),
     subcategoria:  fila.subcategoria  ?? null,
     fecha:         fila.fecha         ?? null,
     estatus:       fila.estatus       ?? null,
@@ -162,6 +185,10 @@ function normalizarFila(fila) {
     referencia:    fila.referencia    ?? null,
     monto:         fila.monto         ?? null,
     impuesto:      fila.impuesto      ?? null,
+    // Se expone para "Fecha de carga" en la sección de Validación del
+    // nuevo Informe Oficial. La columna ya existía y ya se traía con
+    // select('*'); no es una consulta nueva, solo se lee este campo.
+    fecha_subida:  fila.fecha_subida  ?? null,
   };
 }
 
@@ -366,36 +393,326 @@ function renderTarjetas(lista, cat) {
   adjuntarEventos();
 }
 
-function tarjetaHtml(d) {
-  const extras = [];
-  if (d.linea_captura) extras.push(['Línea de captura', d.linea_captura, true]);
-  if (d.importe  != null) extras.push(['Importe',        formatearMoneda(d.importe), false]);
-  if (d.monto    != null) extras.push(['Monto',          formatearMoneda(d.monto),   false]);
-  if (d.servicio)  extras.push(['Servicio',    d.servicio,   false]);
-  if (d.responsable) extras.push(['Responsable', d.responsable, false]);
-  if (d.vigencia)  extras.push(['Vigencia',    d.vigencia,   false]);
-  if (d.metodo_pago) extras.push(['Método pago', d.metodo_pago, false]);
-  if (d.referencia) extras.push(['Referencia',  d.referencia, true]);
-  if (d.impuesto)  extras.push(['Impuesto',    d.impuesto,   false]);
+// =====================================================
+// Rediseño de tarjeta (UI/UX únicamente)
+// =====================================================
+// Mapa categoría → color de la franja superior. Las categorías reales
+// del sistema (CATEGORIAS, arriba) no coinciden 1 a 1 con los ejemplos
+// del brief (Declaraciones/Honorarios/Estados financieros/Opinión
+// SAT/Constancias/Acuses), así que se mapean por significado:
+//   acuses / remisiones        → turquesa (acuses y entregas)
+//   pagos_declaraciones        → verde    (pagos derivados de declaraciones)
+//   pagos_im / presupuestos    → azul     (honorarios / cotizaciones)
+//   opinion / detalle_opinion  → amarillo (Opinión SAT)
+//   tramites                   → gris     (constancias y trámites)
+//   acuerdo                    → morado   (documento contractual)
+// =====================================================
+const COLOR_POR_CATEGORIA = {
+  acuses:              'turquesa',
+  remisiones:           'turquesa',
+  pagos_declaraciones: 'verde',
+  pagos_im:            'azul',
+  presupuestos:        'azul',
+  opinion:             'amarillo',
+  detalle_opinion:     'amarillo',
+  tramites:            'gris',
+  acuerdo:             'morado',
+};
+function colorCategoria(catId) { return COLOR_POR_CATEGORIA[catId] || 'gris'; }
 
-  return `<div class="documento-card con-check">
-    <input type="checkbox" class="documento-check" data-id="${d.id}" ${estado.seleccion.has(String(d.id)) ? 'checked' : ''} aria-label="Seleccionar">
-    <div class="documento-card-top">
-      <h4>${escaparHtml(d.nombre || 'Documento')}</h4>
-      ${esReciente(d.fecha) ? '<span class="doc-reciente">Nuevo</span>' : ''}
+// Ícono grande de respaldo cuando no es posible generar una miniatura
+// real del archivo (ver nota junto a doc-card__archivo más abajo).
+function iconoArchivo(tipo) {
+  const t = (tipo || '').toLowerCase();
+  if (t.includes('pdf'))  return { emoji: '📕', etiqueta: 'PDF' };
+  if (t.includes('png') || t.includes('jpg') || t.includes('jpeg') || t.includes('imagen') || t.includes('image')) {
+    return { emoji: '🖼️', etiqueta: 'Imagen' };
+  }
+  return { emoji: '📁', etiqueta: tipo || 'Archivo' };
+}
+
+// Badge automático de la esquina superior derecha. Prioriza "Nuevo" si
+// el documento es reciente (igual que el badge anterior); si no, deriva
+// el color/emoji del texto libre de "estatus" hacia una de las 5
+// variantes del brief (Nuevo/Pendiente/Pagado/Vencido/Archivado).
+// No sustituye a badgeEstatus() (se sigue usando igual que antes en la
+// vista de tabla, sin cambios).
+function obtenerBadgeCard(d) {
+  if (esReciente(d.fecha)) return { emoji: '🟢', texto: 'Nuevo', clase: 'nuevo' };
+
+  const texto = (d.estatus || '').trim();
+  const n = texto.toLowerCase();
+  if (!texto) return { emoji: '⚪', texto: 'Sin estatus', clase: 'archivado' };
+  if (n.includes('pagad'))                                   return { emoji: '🔵', texto, clase: 'pagado' };
+  if (n.includes('pend') || n.includes('proceso'))           return { emoji: '🟡', texto, clase: 'pendiente' };
+  if (n.includes('venc') || n.includes('cancel') || n.includes('rechaz')) return { emoji: '🔴', texto, clase: 'vencido' };
+  if (n.includes('archiv'))                                  return { emoji: '⚪', texto, clase: 'archivado' };
+  return { emoji: '🟢', texto, clase: 'nuevo' }; // vigente/presentado/aprobado/concluido…
+}
+
+// "Periodo + Año" bajo el nombre del documento (ej. "Marzo 2026").
+function periodoAnioTexto(d) {
+  const anio = (d.fecha || '').slice(0, 4);
+  if (d.subcategoria && anio) return `${d.subcategoria} ${anio}`;
+  if (d.subcategoria) return d.subcategoria;
+  return anio || '';
+}
+
+// =====================================================================
+// INFORME OFICIAL DEL DOCUMENTO (vista previa rediseñada)
+// =====================================================================
+// Todo lo de aquí abajo es exclusivamente presentación: construye el
+// HTML del "expediente digital" que se muestra dentro del modal. No
+// hace consultas a Supabase ni decide permisos; solo formatea los
+// datos que ya trae "doc" (mismo objeto normalizado de siempre).
+// =====================================================================
+
+// Etiquetas por defecto de cada campo dentro del informe.
+const ETIQUETAS_DEFECTO = {
+  tipo: 'Tipo', fecha: 'Fecha', estatus: 'Estatus', subcategoria: 'Periodo',
+  responsable: 'Responsable', servicio: 'Servicio', vigencia: 'Vigencia',
+  metodo_pago: 'Método de pago', referencia: 'Referencia',
+  importe: 'Importe', monto: 'Monto', impuesto: 'Impuesto',
+};
+
+// Algunas categorías usan los mismos campos con otro significado
+// (ej. en "pagos_im" el campo "impuesto" se usa como IVA y "servicio"
+// como concepto del honorario). Se ajustan solo las etiquetas, los
+// datos siguen siendo los mismos que ya guarda "documentos".
+const ETIQUETAS_POR_CATEGORIA = {
+  pagos_im:            { servicio: 'Concepto', monto: 'Monto', impuesto: 'IVA', fecha: 'Fecha de emisión' },
+  presupuestos:        { servicio: 'Concepto', importe: 'Monto' },
+  pagos_declaraciones: { fecha: 'Fecha de pago', importe: 'Importe', impuesto: 'Impuesto' },
+  acuses:              { subcategoria: 'Periodo' },
+  tramites:            { tipo: 'Tipo de trámite' },
+};
+
+function etiquetaCampo(categoriaId, campo) {
+  return (ETIQUETAS_POR_CATEGORIA[categoriaId] || {})[campo] || ETIQUETAS_DEFECTO[campo] || campo;
+}
+
+// Una fila del informe; regresa '' (nada) si el valor está vacío, para
+// cumplir "no mostrar filas vacías".
+function filaInforme(etiqueta, valor) {
+  if (valor === null || valor === undefined || valor === '') return '';
+  return `<div class="informe-fila"><span class="informe-clave">${escaparHtml(etiqueta)}</span><span class="informe-valor">${escaparHtml(valor)}</span></div>`;
+}
+
+function seccionInforme(titulo, filasHtml, claseExtra) {
+  if (!filasHtml) return '';
+  return `<section class="informe-seccion ${claseExtra || ''}">
+    <h3 class="informe-seccion-titulo">${escaparHtml(titulo)}</h3>
+    <div class="informe-seccion-cuerpo">${filasHtml}</div>
+  </section>`;
+}
+
+function seccionDatosGenerales(doc, cat) {
+  const anio = (doc.fecha || '').slice(0, 4);
+  const filas = [
+    filaInforme('Categoría', cat?.nombre),
+    filaInforme(etiquetaCampo(doc.categoria, 'tipo'), doc.tipo),
+    filaInforme(etiquetaCampo(doc.categoria, 'fecha'), doc.fecha ? formatearFecha(doc.fecha) : null),
+    filaInforme(etiquetaCampo(doc.categoria, 'subcategoria'), doc.subcategoria),
+    filaInforme('Ejercicio', anio),
+    filaInforme(etiquetaCampo(doc.categoria, 'estatus'), doc.estatus),
+  ].join('');
+  return seccionInforme('DATOS GENERALES', filas);
+}
+
+function seccionInformacionFiscal(doc) {
+  const filas = [
+    filaInforme(etiquetaCampo(doc.categoria, 'importe'), doc.importe != null ? formatearMoneda(doc.importe) : null),
+    filaInforme(etiquetaCampo(doc.categoria, 'monto'),   doc.monto   != null ? formatearMoneda(doc.monto)   : null),
+    filaInforme(etiquetaCampo(doc.categoria, 'impuesto'), doc.impuesto),
+  ].join('');
+  return seccionInforme('INFORMACIÓN FISCAL', filas);
+}
+
+function seccionInformacionDocumento(doc) {
+  const filas = [
+    filaInforme(etiquetaCampo(doc.categoria, 'responsable'),  doc.responsable),
+    filaInforme(etiquetaCampo(doc.categoria, 'servicio'),     doc.servicio),
+    filaInforme(etiquetaCampo(doc.categoria, 'vigencia'),     doc.vigencia),
+    filaInforme(etiquetaCampo(doc.categoria, 'metodo_pago'),  doc.metodo_pago),
+    filaInforme(etiquetaCampo(doc.categoria, 'referencia'),   doc.referencia),
+  ].join('');
+  return seccionInforme('INFORMACIÓN DEL DOCUMENTO', filas);
+}
+
+function bloqueLineaCaptura(doc) {
+  if (!doc.linea_captura) return '';
+  return `<section class="informe-seccion informe-linea">
+    <h3 class="informe-seccion-titulo">LÍNEA DE CAPTURA</h3>
+    <div class="informe-linea-caja">
+      <code class="informe-linea-valor">${escaparHtml(doc.linea_captura)}</code>
+      <button type="button" class="informe-linea-copiar" data-accion="copiar-linea-informe" data-valor="${escaparHtml(doc.linea_captura)}" title="Copiar línea de captura" aria-label="Copiar línea de captura">📋 Copiar</button>
     </div>
-    <div class="documento-meta-lista">
-      <div class="fila"><span class="clave">Fecha</span><span class="valor">${formatearFecha(d.fecha)}</span></div>
-      <div class="fila"><span class="clave">Tipo</span><span class="valor">${escaparHtml(d.tipo||'—')}</span></div>
-      <div class="fila"><span class="clave">Estatus</span><span class="valor">${badgeEstatus(d.estatus)}</span></div>
-      ${extras.map(([k,v,m]) => `<div class="fila"><span class="clave">${k}</span><span class="valor ${m?'mono':''}">${escaparHtml(v)}</span></div>`).join('')}
+  </section>`;
+}
+
+function bloqueObservaciones(doc) {
+  if (!doc.observaciones) return '';
+  return `<section class="informe-seccion">
+    <h3 class="informe-seccion-titulo">OBSERVACIONES</h3>
+    <div class="informe-obs"><span class="informe-obs-icono" aria-hidden="true">💬</span><p class="informe-obs-texto">${escaparHtml(doc.observaciones)}</p></div>
+  </section>`;
+}
+
+// Contenedor donde abrirVistaPrevia() inyectará, de forma asíncrona, el
+// estado del archivo real (cargando / aviso / error / enlace). El
+// mecanismo para obtener ese enlace (obtenerUrlFirmada) no cambia.
+function bloqueArchivoAdjunto() {
+  return `<section class="informe-seccion informe-archivo">
+    <h3 class="informe-seccion-titulo">ARCHIVO ADJUNTO</h3>
+    <div class="informe-archivo-contenido" id="modalArchivoContenido"></div>
+  </section>`;
+}
+
+function seccionValidacion(doc) {
+  const filas = [
+    filaInforme('Fecha de recepción',      doc.fecha ? formatearFecha(doc.fecha) : null),
+    filaInforme('Responsable',             doc.responsable),
+    filaInforme('Usuario que lo cargó',    doc.subido_por),
+    filaInforme('Fecha de carga',          formatearFechaHora(doc.fecha_subida)),
+    filaInforme('Estado',                  doc.estatus),
+  ].join('');
+  return seccionInforme('VALIDACIÓN DEL DOCUMENTO', filas, 'informe-validacion');
+}
+
+// Construye el "expediente" completo: encabezado con identidad
+// corporativa, marca de agua, secciones adaptadas al tipo de
+// documento, línea de captura, observaciones, archivo adjunto,
+// validación y pie institucional.
+function construirInformeHtml(doc, cat) {
+  return `<div class="informe-hoja">
+    <div class="informe-marca-agua" aria-hidden="true"></div>
+
+    <header class="informe-header">
+      <img class="informe-logo-lateral" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.visibility='hidden'">
+      <div class="informe-header-centro">
+        <img class="informe-logo-centro" src="assets/logo.png" alt="IM Servicios Contables" onerror="this.style.display='none'">
+        <p class="informe-empresa">IM SERVICIOS CONTABLES</p>
+        <h2 class="informe-titulo">INFORME OFICIAL DEL DOCUMENTO</h2>
+        <div class="informe-linea-institucional"></div>
+      </div>
+      <img class="informe-logo-lateral" src="assets/logo.png" alt="" aria-hidden="true" onerror="this.style.visibility='hidden'">
+    </header>
+
+    <div class="informe-cuerpo">
+      ${seccionDatosGenerales(doc, cat)}
+      ${seccionInformacionFiscal(doc)}
+      ${seccionInformacionDocumento(doc)}
+      ${bloqueLineaCaptura(doc)}
+      ${bloqueObservaciones(doc)}
+      ${bloqueArchivoAdjunto()}
+      ${seccionValidacion(doc)}
     </div>
-    ${d.observaciones ? `<div class="documento-obs">${escaparHtml(d.observaciones)}</div>` : ''}
-    <div class="documento-card-footer">
-      <span class="documento-subido-por">${d.subido_por ? `Subido por ${escaparHtml(d.subido_por)}` : ''}</span>
-      <div class="documento-acciones">
-        <button type="button" class="accion-ver" data-accion="ver" data-id="${d.id}">Ver</button>
-        <button type="button" data-accion="descargar" data-id="${d.id}">Descargar</button>
+
+    <footer class="informe-footer">
+      <div class="informe-footer-linea"></div>
+      <p>Este documento fue generado automáticamente por el Portal de Clientes de IM Servicios Contables.</p>
+      <p>La información contenida corresponde al expediente digital del contribuyente.</p>
+      <p>Documento emitido por IM Servicios Contables. No requiere firma autógrafa.</p>
+    </footer>
+  </div>`;
+}
+
+// Eventos internos del informe (por ahora, copiar línea de captura).
+// Se vuelve a llamar cada vez que se reconstruye el informe.
+function adjuntarEventosInforme() {
+  modalInformeEl.querySelectorAll('[data-accion="copiar-linea-informe"]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const valor = b.dataset.valor || '';
+      try {
+        await navigator.clipboard.writeText(valor);
+        mostrarToast('Línea copiada correctamente');
+      } catch (e) {
+        mostrarToast('No se pudo copiar. Selecciona el texto manualmente.');
+      }
+    });
+  });
+}
+
+function tarjetaHtml(d) {
+  const cat      = CATEGORIAS.find(c => c.id === d.categoria);
+  const badge    = obtenerBadgeCard(d);
+  const anio     = (d.fecha || '').slice(0, 4);
+  const periodo  = periodoAnioTexto(d);
+  const archivo  = iconoArchivo(d.tipo);
+
+  // Información principal solicitada: Fecha, Tipo, Estado, Periodo,
+  // Año, Responsable. Los campos vacíos simplemente no se agregan.
+  const filas = [];
+  if (d.fecha)        filas.push(['Fecha', formatearFecha(d.fecha)]);
+  if (d.tipo)          filas.push(['Tipo', escaparHtml(d.tipo)]);
+  if (d.estatus)       filas.push(['Estado', escaparHtml(d.estatus)]);
+  if (d.subcategoria)  filas.push(['Periodo', escaparHtml(d.subcategoria)]);
+  if (anio)            filas.push(['Año', anio]);
+  if (d.responsable)   filas.push(['Responsable', escaparHtml(d.responsable)]);
+
+  // Campos financieros/administrativos propios de cada categoría (se
+  // conservan del diseño anterior; siguen ocultos si están vacíos).
+  if (d.importe  != null) filas.push(['Importe', formatearMoneda(d.importe)]);
+  if (d.monto    != null) filas.push(['Monto', formatearMoneda(d.monto)]);
+  if (d.servicio)          filas.push(['Servicio', escaparHtml(d.servicio)]);
+  if (d.vigencia)          filas.push(['Vigencia', escaparHtml(d.vigencia)]);
+  if (d.metodo_pago)       filas.push(['Método de pago', escaparHtml(d.metodo_pago)]);
+  if (d.referencia)        filas.push(['Referencia', escaparHtml(d.referencia)]);
+  if (d.impuesto)          filas.push(['Impuesto', escaparHtml(d.impuesto)]);
+
+  return `<div class="documento-card con-check doc-card doc-card--${colorCategoria(d.categoria)}">
+    <input type="checkbox" class="documento-check doc-card__check" data-id="${d.id}" ${estado.seleccion.has(String(d.id)) ? 'checked' : ''} aria-label="Seleccionar">
+
+    <span class="doc-card__badge doc-card__badge--${badge.clase}">${badge.emoji} ${escaparHtml(badge.texto)}</span>
+
+    <div class="doc-card__header">
+      <span class="doc-card__header-icono" aria-hidden="true">${cat?.icono || '📄'}</span>
+      <div class="doc-card__header-texto">
+        <h4 class="doc-card__nombre">${escaparHtml(d.nombre || 'Documento')}</h4>
+        ${periodo ? `<p class="doc-card__periodo">${escaparHtml(periodo)}</p>` : ''}
+      </div>
+    </div>
+
+    <div class="doc-card__info">
+      ${filas.map(([k, v]) => `<div class="doc-card__info-fila"><span class="doc-card__info-clave">${k}</span><span class="doc-card__info-valor">${v}</span></div>`).join('')}
+    </div>
+
+    ${d.linea_captura ? `
+    <div class="doc-card__linea">
+      <span class="doc-card__linea-label">Línea de captura</span>
+      <div class="doc-card__linea-caja">
+        <code class="doc-card__linea-valor">${escaparHtml(d.linea_captura)}</code>
+        <button type="button" class="doc-card__linea-copiar" data-accion="copiar-linea" data-valor="${escaparHtml(d.linea_captura)}" title="Copiar línea de captura" aria-label="Copiar línea de captura">📋</button>
+      </div>
+    </div>` : ''}
+
+    ${d.observaciones ? `
+    <div class="doc-card__obs">
+      <span class="doc-card__obs-icono" aria-hidden="true">💬</span>
+      <p class="doc-card__obs-texto">${escaparHtml(d.observaciones)}</p>
+    </div>` : ''}
+
+    <!-- Miniatura real: requeriría pedir una URL firmada por archivo al
+         renderizar la lista (llamada extra a Storage por documento), lo
+         cual no se hizo aquí a propósito para no tocar Storage/las
+         consultas. Se muestra un ícono grande según el tipo de archivo. -->
+    <div class="doc-card__archivo">
+      <span class="doc-card__archivo-icono" aria-hidden="true">${archivo.emoji}</span>
+      <span class="doc-card__archivo-etiqueta">${escaparHtml(archivo.etiqueta)}</span>
+    </div>
+
+    <div class="doc-card__footer">
+      <span class="doc-card__subido-por">${d.subido_por ? `Subido por ${escaparHtml(d.subido_por)}` : ''}</span>
+      <div class="doc-card__acciones">
+        <button type="button" class="doc-card__accion doc-card__accion--ver" data-accion="ver" data-id="${d.id}">
+          <span aria-hidden="true">👁</span> Ver
+        </button>
+        <button type="button" class="doc-card__accion doc-card__accion--descargar" data-accion="descargar" data-id="${d.id}">
+          <span aria-hidden="true">⬇</span> Descargar
+        </button>
+        <button type="button" class="doc-card__accion doc-card__accion--compartir" title="Próximamente" disabled>
+          <span aria-hidden="true">📤</span> Compartir
+        </button>
       </div>
     </div>
   </div>`;
@@ -435,6 +752,19 @@ function adjuntarEventos() {
   contenedorDocumentosEl.querySelectorAll('[data-accion="descargar"]').forEach(b => {
     b.addEventListener('click', () => descargarDocumento(buscarDoc(b.dataset.id)));
   });
+  // Copiar línea de captura (parte del rediseño de la tarjeta). Solo
+  // copia texto al portapapeles; no toca lógica de Storage/Supabase.
+  contenedorDocumentosEl.querySelectorAll('[data-accion="copiar-linea"]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const valor = b.dataset.valor || '';
+      try {
+        await navigator.clipboard.writeText(valor);
+        mostrarToast('Línea copiada');
+      } catch (e) {
+        mostrarToast('No se pudo copiar. Selecciona el texto manualmente.');
+      }
+    });
+  });
   contenedorDocumentosEl.querySelectorAll('.documento-check').forEach(chk => {
     chk.addEventListener('change', () => {
       if (chk.checked) estado.seleccion.add(String(chk.dataset.id));
@@ -473,59 +803,53 @@ function renderHistorial() {
 // =====================================================
 // Vista previa — genera URL firmada antes de mostrar el link
 // =====================================================
+// =====================================================
+// Vista previa — genera URL firmada antes de mostrar el link
+// (misma lógica de siempre: obtenerUrlFirmada, registrarHistorial y
+// los atributos de modalDescargar no cambiaron; solo cambió cómo se
+// presenta todo dentro del modal).
+// =====================================================
 async function abrirVistaPrevia(doc) {
   if (!doc) return;
 
+  const cat = CATEGORIAS.find(c => c.id === doc.categoria);
+
   modalTituloEl.textContent    = doc.nombre || 'Documento';
-  modalSubtituloEl.textContent = `${formatearFecha(doc.fecha)} · ${doc.tipo || 'PDF'}`;
+  modalSubtituloEl.textContent = [cat?.nombre || doc.tipo, periodoAnioTexto(doc)].filter(Boolean).join(' · ');
   modalEl.classList.add('abierto');
 
   modalIframeEl.style.display = 'none';
   modalIframeEl.removeAttribute('src');
   modalIframeEl.removeAttribute('srcdoc');
 
-  const cuerpo = modalIframeEl.parentElement;
-  cuerpo.querySelectorAll('.modal-doc-acciones').forEach(el => el.remove());
+  // Construye el expediente completo (síncrono: usa los datos que ya
+  // tenemos del documento). El estado del archivo real se resuelve
+  // aparte, abajo, igual que antes.
+  modalInformeEl.innerHTML = construirInformeHtml(doc, cat);
+  adjuntarEventosInforme();
+
   modalDescargarEl.style.display = 'none';
 
+  const contenedorArchivo = document.getElementById('modalArchivoContenido');
+
   if (!doc.url_archivo) {
-    const aviso = document.createElement('div');
-    aviso.className = 'modal-doc-acciones';
-    aviso.innerHTML = `<p style="color:#647069;text-align:center;">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p>`;
-    cuerpo.appendChild(aviso);
+    contenedorArchivo.innerHTML = `<p class="informe-archivo-aviso">Este documento aún no tiene archivo adjunto.<br>Sube el archivo desde <strong>Subir documento</strong> para verlo aquí.</p>`;
     registrarHistorial(doc);
     return;
   }
 
-  // Aviso de "generando enlace seguro..." mientras se pide la URL firmada
-  const cargando = document.createElement('div');
-  cargando.className = 'modal-doc-acciones';
-  cargando.innerHTML = `<p style="color:#647069;text-align:center;">Generando enlace seguro…</p>`;
-  cuerpo.appendChild(cargando);
+  contenedorArchivo.innerHTML = `<p class="informe-archivo-aviso">Generando enlace seguro…</p>`;
 
   const url = await obtenerUrlFirmada(doc.url_archivo);
-  cargando.remove();
 
   if (!url) {
-    const error = document.createElement('div');
-    error.className = 'modal-doc-acciones';
-    error.innerHTML = `<p style="color:#B23A2E;text-align:center;">No se pudo generar el enlace seguro.<br>Verifica que el archivo exista en esa ruta dentro del bucket "documentos".</p>`;
-    cuerpo.appendChild(error);
+    contenedorArchivo.innerHTML = `<p class="informe-archivo-error">No se pudo generar el enlace seguro.<br>Verifica que el archivo exista en esa ruta dentro del bucket "documentos".</p>`;
     return;
   }
 
-  const acciones = document.createElement('div');
-  acciones.className = 'modal-doc-acciones';
-  acciones.innerHTML = `
-    <p style="color:#647069;font-size:14px;text-align:center;margin-bottom:20px;">
-      Los PDFs se abren en una nueva pestaña para mayor compatibilidad.<br>
-      Este enlace caduca en 1 hora por seguridad.
-    </p>
-    <a href="${escaparHtml(url)}" target="_blank" rel="noopener"
-       style="display:inline-block;background:#0D3327;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:12px;">
-      📄 Abrir PDF ↗
-    </a>`;
-  cuerpo.appendChild(acciones);
+  contenedorArchivo.innerHTML = `
+    <p class="informe-archivo-nota">Los PDFs se abren en una nueva pestaña para mayor compatibilidad. Este enlace caduca en 1 hora por seguridad.</p>
+    <a href="${escaparHtml(url)}" target="_blank" rel="noopener" class="informe-archivo-boton">📄 Abrir documento original ↗</a>`;
 
   modalDescargarEl.style.display = '';
   modalDescargarEl.href          = url;
@@ -541,10 +865,11 @@ function cerrarVistaPrevia() {
   modalIframeEl.style.display = 'none';
   modalIframeEl.removeAttribute('src');
   modalIframeEl.removeAttribute('srcdoc');
-  const cuerpo = modalIframeEl.parentElement;
-  cuerpo.querySelectorAll('.modal-doc-acciones').forEach(el => el.remove());
   modalDescargarEl.style.display = '';
   modalDescargarEl.href = '#';
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.().catch(() => {});
+  }
 }
 
 async function descargarDocumento(doc) {
@@ -594,6 +919,21 @@ btnDescargaMultipleEl.addEventListener('click', async () => {
 modalCerrarEl.addEventListener('click', cerrarVistaPrevia);
 modalEl.addEventListener('click', e => { if (e.target === modalEl) cerrarVistaPrevia(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarVistaPrevia(); });
+
+// Botones nuevos del visor (solo UI: no tocan Supabase/Storage).
+if (btnModalImprimirEl) {
+  btnModalImprimirEl.addEventListener('click', () => window.print());
+}
+if (btnModalPantallaCompletaEl) {
+  btnModalPantallaCompletaEl.addEventListener('click', () => {
+    const contenedor = document.querySelector('.modal-pdf');
+    if (!document.fullscreenElement) {
+      contenedor?.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  });
+}
 
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
   await supabaseClient.auth.signOut();

@@ -9,10 +9,10 @@
    ===================================================================== */
 
 :root {
-  --inf-verde:        #0D3327;
-  --inf-verde-suave:  #E7F0EA;
-  --inf-azul:         #1B4B7A;
-  --inf-azul-suave:   #E7EFF6;
+  --inf-verde:        #1A4D61;
+  --inf-verde-suave:  #E4EFF3;
+  --inf-azul:         #5CC8F2;
+  --inf-azul-suave:   #E3F6FD;
   --inf-gris-fondo:   #F5F7FA;
   --inf-gris-borde:   #E3E6E2;
   --inf-gris-texto:   #647069;
@@ -225,7 +225,7 @@
 
 /* Validación: mismo patrón, con un tinte azul institucional distintivo */
 .informe-validacion .informe-seccion-titulo { background: var(--inf-azul); }
-.informe-validacion .informe-seccion-cuerpo { background: var(--inf-azul-suave); border-color: #CFE0EF; }
+.informe-validacion .informe-seccion-cuerpo { background: var(--inf-azul-suave); border-color: #BEE6F4; }
 
 /* =====================================================================
    Línea de captura

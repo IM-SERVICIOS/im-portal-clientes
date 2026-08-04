@@ -13,7 +13,7 @@
 
 .dashboard-shell { display: flex; min-height: 100vh; }
 
-.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(8,20,16,0.45); z-index: 40; }
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(6,26,36,0.5); z-index: 40; }
 
 .sidebar {
   width: var(--sidebar-w);
@@ -53,7 +53,7 @@
 .dashboard-header {
   position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between;
   gap: 16px; padding: 0 32px; height: var(--header-h);
-  background: rgba(245, 248, 246, 0.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--ink-100);
+  background: rgba(245, 247, 250, 0.86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--ink-100);
 }
 .header-left { display: flex; align-items: center; gap: 14px; }
 .dashboard-header h1 { margin: 0; font-size: 21px; font-weight: 700; }
@@ -71,7 +71,7 @@
 .seccion-subtitulo { margin: 3px 0 0; font-size: 13px; color: var(--ink-500); }
 
 .estado-carga { display: flex; align-items: center; gap: 10px; padding: 26px; border-radius: var(--r-lg); background: var(--paper); border: 1px solid var(--ink-100); color: var(--ink-500); font-size: 13.5px; }
-.estado-error { color: var(--error); }
+.estado-error { color: var(--red-600); }
 .estado-vacio { color: var(--ink-500); font-size: 14px; border: 1px dashed var(--ink-200); border-radius: var(--r-lg); padding: 24px; text-align: center; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid var(--verde-100); border-top-color: var(--verde-600); animation: girar .7s linear infinite; }
 @keyframes girar { to { transform: rotate(360deg); } }
@@ -113,7 +113,7 @@
 .resumen-encabezado {
   position: relative;
   z-index: 2;
-  background: linear-gradient(120deg, var(--verde-700), var(--verde-900));
+  background: linear-gradient(135deg, var(--verde-900) 0%, var(--verde-700) 55%, var(--verde-500) 100%);
   color: #fff;
   padding: 16px 24px;
   display: flex;
@@ -159,8 +159,8 @@
 }
 
 .kpi-icono.kpi-1 { background: var(--verde-600); }
-.kpi-icono.kpi-2 { background: var(--azul-marca, #2c4a7c); }
-.kpi-icono.kpi-3 { background: var(--dorado-acento, #c89b3c); }
+.kpi-icono.kpi-2 { background: #0F7C93; } /* acento teal, coherente con documentos-cards.css */
+.kpi-icono.kpi-3 { background: #C89B3C; } /* acento dorado cálido, contraste con el azul */
 .kpi-icono.kpi-4 { background: var(--verde-800); }
 .kpi-icono.kpi-5 { background: var(--verde-950); }
 

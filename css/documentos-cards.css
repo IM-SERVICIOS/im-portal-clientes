@@ -13,10 +13,10 @@
    ===================================================================== */
 
 :root {
-  --doc-verde-institucional:       #0D3327;
-  --doc-verde-institucional-suave: #E7F0EA;
-  --doc-azul-institucional:        #1B4B7A;
-  --doc-azul-institucional-suave:  #E7EFF6;
+  --doc-verde-institucional:       #1A4D61;
+  --doc-verde-institucional-suave: #E4EFF3;
+  --doc-azul-institucional:        #0F7C93;
+  --doc-azul-institucional-suave:  #E1F3F6;
   --doc-gris-claro:                #F4F5F4;
   --doc-gris-borde:                #E3E6E2;
   --doc-gris-texto:                #647069;
@@ -119,7 +119,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.doc-card__badge--nuevo      { background: var(--doc-verde-institucional-suave); color: #1E6B45; }
+.doc-card__badge--nuevo      { background: var(--doc-verde-institucional-suave); color: #1A4D61; }
 .doc-card__badge--pendiente  { background: #FBF0DC; color: #92670C; }
 .doc-card__badge--pagado     { background: var(--doc-azul-institucional-suave); color: var(--doc-azul-institucional); }
 .doc-card__badge--vencido    { background: #FBE7E5; color: #B23A2E; }

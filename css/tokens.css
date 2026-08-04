@@ -1,42 +1,61 @@
 /* =====================================================
    IM Servicios Contables — Design Tokens
-   Paleta verde corporativa inspirada en Stripe / Notion /
-   QuickBooks / HubSpot. Importado por dashboard.css y
+   Paleta azul corporativa (sky / petrol / deep / ink),
+   alineada con el login (index.html) para que todo el
+   portal comparta la misma identidad visual. Los nombres
+   de variable --verde-* se conservan por compatibilidad
+   con el resto del CSS del sistema, pero ahora apuntan a
+   tonos azules. Importado por dashboard.css y
    documentos.css para mantener consistencia visual.
    ===================================================== */
 
 :root {
 
-  /* ---- Verde corporativo ---- */
-  --verde-950: #07211A;
-  --verde-900: #0D3327;
-  --verde-800: #134A36;
-  --verde-700: #186144;
-  --verde-600: #1C7A52;
-  --verde-500: #239262;
-  --verde-400: #3DAD7B;
-  --verde-200: #B9E2CC;
-  --verde-100: #DCF1E4;
-  --verde-50:  #F1FAF5;
+  /* ---- Azul corporativo (antes verde) ----
+     950/900/700/500 coinciden exactamente con --ink/--deep/
+     --petrol del login para máxima coherencia de marca. */
+  --verde-950: #061A24; /* más oscuro que --ink, refuerzos/hover profundos */
+  --verde-900: #0D2F3F; /* = --ink del login */
+  --verde-800: #12415A;
+  --verde-700: #1A4D61; /* = --deep del login */
+  --verde-600: #235B72;
+  --verde-500: #2C6E85; /* = --petrol del login */
+  --verde-400: #4F92AC;
+  --verde-200: #BEE6F4;
+  --verde-100: #DFF3FB;
+  --verde-50:  #F1FAFD;
 
-  /* ---- Tinta / neutros (con leve matiz verde) ---- */
-  --ink-900: #122019;
-  --ink-700: #34453E;
-  --ink-500: #647069;
-  --ink-400: #8A958E;
-  --ink-300: #B6C0B9;
-  --ink-200: #D8E0DB;
-  --ink-100: #EAEFEC;
+  /* Alias explícitos por si se prefiere el nombre semántico correcto */
+  --azul-950: var(--verde-950);
+  --azul-900: var(--verde-900);
+  --azul-800: var(--verde-800);
+  --azul-700: var(--verde-700);
+  --azul-600: var(--verde-600);
+  --azul-500: var(--verde-500);
+  --azul-400: var(--verde-400);
+  --azul-200: var(--verde-200);
+  --azul-100: var(--verde-100);
+  --azul-50:  var(--verde-50);
+  --sky:      #5CC8F2; /* acento vivo, igual que el login */
+
+  /* ---- Tinta / neutros (con leve matiz azul) ---- */
+  --ink-900: #12202B;
+  --ink-700: #34434D;
+  --ink-500: #64707A;
+  --ink-400: #8A959D;
+  --ink-300: #B6C0C6;
+  --ink-200: #D8E0E4;
+  --ink-100: #EAEEF0;
   --paper:   #FFFFFF;
-  --bg:      #F5F8F6;
+  --bg:      #F5F7FA;
 
   /* ---- Estatus ---- */
   --amber-600: #B5710A;
   --amber-100: #FCF0DA;
   --red-600:   #B23A2E;
   --red-100:   #FAE4E1;
-  --blue-600:  #2A5DAD;
-  --blue-100:  #E2EBFA;
+  --blue-600:  #5B4FC4;
+  --blue-100:  #EAE8FB;
   --verde-ok-600: var(--verde-600);
   --verde-ok-100: var(--verde-100);
 
@@ -46,11 +65,11 @@
   --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
 
   /* ---- Sombras ---- */
-  --shadow-xs: 0 1px 2px rgba(18, 32, 25, 0.05);
-  --shadow-sm: 0 1px 3px rgba(18, 32, 25, 0.07), 0 1px 2px rgba(18, 32, 25, 0.04);
-  --shadow-md: 0 6px 16px -4px rgba(18, 32, 25, 0.10), 0 2px 6px -2px rgba(18, 32, 25, 0.06);
-  --shadow-lg: 0 16px 32px -8px rgba(18, 32, 25, 0.16), 0 4px 10px -2px rgba(18, 32, 25, 0.06);
-  --shadow-focus: 0 0 0 3px rgba(35, 146, 98, 0.28);
+  --shadow-xs: 0 1px 2px rgba(13, 47, 63, 0.05);
+  --shadow-sm: 0 1px 3px rgba(13, 47, 63, 0.07), 0 1px 2px rgba(13, 47, 63, 0.04);
+  --shadow-md: 0 6px 16px -4px rgba(13, 47, 63, 0.10), 0 2px 6px -2px rgba(13, 47, 63, 0.06);
+  --shadow-lg: 0 16px 32px -8px rgba(13, 47, 63, 0.16), 0 4px 10px -2px rgba(13, 47, 63, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(44, 110, 133, 0.28);
 
   /* ---- Radios ---- */
   --r-sm: 8px;

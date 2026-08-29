@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil | IM Servicios Contables</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/perfil.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="dashboard-body">
+
+<div class="dashboard-shell" id="dashboardShell">
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-top">
+            <div class="sidebar-logo">
+                <img src="assets/logo.png" alt="IM Servicios Contables" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="sidebar-logo-fallback" aria-hidden="true">IM</div>
+                <div class="sidebar-wordmark">
+                    <strong>IM Servicios</strong>
+                    <span>Contables</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <span class="sidebar-nav-label">Portal de cliente</span>
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">🏢</span> Mis Cuentas
+            </a>
+            <a href="declaraciones.html" class="nav-item">
+                <span class="nav-icon">📄</span> Declaraciones
+            </a>
+            <a href="honorarios.html" class="nav-item">
+                <span class="nav-icon">💼</span> Honorarios
+            </a>
+            <a href="documentos.html" class="nav-item">
+                <span class="nav-icon">🗂️</span> Documentos
+            </a>
+            <a href="subir-documento.html" class="nav-item admin-only">
+                <span class="nav-icon">⬆️</span> Subir documento
+            </a>
+            <a href="avisos.html" class="nav-item">
+                <span class="nav-icon">🔔</span> Avisos
+            </a>
+            <a href="perfil.html" class="nav-item active">
+                <span class="nav-icon">👤</span> Perfil
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <button id="btnCerrarSesion" class="sidebar-logout">
+                <span class="nav-icon">⏻</span> Cerrar Sesión
+            </button>
+        </div>
+
+    </aside>
+
+    <main class="dashboard-main">
+
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button class="btn-menu-movil" id="btnMenuMovil" aria-label="Abrir menú">
+                    <span></span><span></span><span></span>
+                </button>
+                <div>
+                    <h1>Perfil</h1>
+                    <p class="subtitle">Tus datos de acceso y datos fiscales.</p>
+                </div>
+            </div>
+            <div class="usuario-info">
+                <div class="usuario-texto">
+                    <span id="nombreUsuario">Cargando...</span>
+                    <span id="rolUsuario" class="badge-rol"></span>
+                </div>
+                <div class="avatar-usuario" id="avatarUsuario" aria-hidden="true">··</div>
+            </div>
+        </header>
+
+        <div class="dashboard-content perfil-content">
+
+            <section id="estadoCarga" class="estado-carga">
+                <span class="spinner" aria-hidden="true"></span>
+                Cargando tu perfil...
+            </section>
+
+            <div id="perfilCuerpo" style="display:none;">
+
+                <!-- Mi cuenta -->
+                <section class="perfil-card">
+                    <h2 class="perfil-card-titulo">Mi cuenta</h2>
+                    <div class="perfil-info-grid">
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">Correo</span>
+                            <span class="perfil-info-valor" id="perfilCorreoUsuario">—</span>
+                        </div>
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">Rol</span>
+                            <span class="perfil-info-valor" id="perfilRolUsuario">—</span>
+                        </div>
+                    </div>
+                    <button id="btnCerrarSesionPerfil" class="btn btn-secondary perfil-btn-salir">⏻ Cerrar sesión</button>
+                </section>
+
+                <!-- Datos fiscales -->
+                <section class="perfil-card">
+                    <div class="perfil-card-header">
+                        <h2 class="perfil-card-titulo">Datos fiscales</h2>
+                        <div class="campo-cliente" id="selectorClienteWrap" style="display:none;">
+                            <label for="selectorClientePerfil">Cliente</label>
+                            <select id="selectorClientePerfil"></select>
+                        </div>
+                    </div>
+
+                    <div id="perfilFiscalVacio" class="estado-vacio" style="display:none;">
+                        No tienes clientes asociados todavía.
+                    </div>
+
+                    <div id="perfilFiscalDatos" class="perfil-info-grid" style="display:none;">
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">Nombre / Razón social</span>
+                            <span class="perfil-info-valor" id="perfilNombre">—</span>
+                        </div>
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">RFC</span>
+                            <span class="perfil-info-valor" id="perfilRfc">—</span>
+                        </div>
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">Correo</span>
+                            <span class="perfil-info-valor" id="perfilCorreo">—</span>
+                        </div>
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">Teléfono</span>
+                            <span class="perfil-info-valor" id="perfilTelefono">—</span>
+                        </div>
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">Régimen fiscal</span>
+                            <span class="perfil-info-valor" id="perfilRegimen">—</span>
+                        </div>
+                        <div class="perfil-info-fila">
+                            <span class="perfil-info-clave">Estatus</span>
+                            <span class="perfil-info-valor" id="perfilEstatus">—</span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/perfil.js"></script>
+
+</body>
+</html>
